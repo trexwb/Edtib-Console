@@ -1,0 +1,773 @@
+/**
+ * @description 全局样式
+ */
+
+@use 'element-plus/theme-chalk/src/display';
+@use 'element-plus/theme-chalk/src/index';
+@use 'vxe-table/lib/style.css';
+@use './var';
+@use './dark';
+@use './plain';
+@use './technology';
+@use 'normalize.css';
+
+@mixin base-scrollbar {
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: rgba(#909399, 0.3);
+    border-radius: var(--el-border-radius-round);
+    transition: var(--el-transition-duration) background-color;
+
+    &:hover {
+      background-color: rgba(#909399, 0.5);
+    }
+  }
+
+  /* Firefox */
+  & {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(#909399, 0.3) transparent;
+  }
+
+  &::-moz-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  &::-moz-scrollbar-thumb {
+    background-color: rgba(#909399, 0.3);
+    border-radius: var(--el-border-radius-round);
+    transition: var(--el-transition-duration) background-color;
+
+    &:hover {
+      background-color: rgba(#909399, 0.5);
+    }
+  }
+}
+
+@mixin base-scrollbar {
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: rgba(#909399, 0.3);
+    border-radius: var(--el-border-radius-round);
+    transition: var(--el-transition-duration) background-color;
+
+    &:hover {
+      background-color: rgba(#909399, 0.5);
+    }
+  }
+}
+
+html {
+  body {
+    position: relative;
+    box-sizing: border-box;
+    height: 100vh;
+    padding: 0;
+    overflow: hidden;
+    font-family: Arial, sans-serif;
+    font-size: var(--el-font-size-default);
+    color: var(--el-color-black);
+    background: var(--el-background-color);
+    -webkit-font-smoothing: antialiased;
+
+    &.color-weakness {
+      filter: invert(80%);
+    }
+
+    #app {
+      height: 100vh;
+
+      @include base-scrollbar;
+
+      &:not([class*='el-scrollbar']) {
+        transition: var(--el-transition);
+      }
+
+      .vue-shop-vite-box {
+
+        section,
+        div:not(.el-drawer,
+          .el-drawer *,
+          .el-dialog,
+          .el-dialog *,
+          .el-table,
+          .el-table *,
+          .el-carousel,
+          .el-carousel *,
+          .el-pagination,
+          .el-pagination *,
+          .el-slider,
+          .el-slider *,
+          .split,
+          .split *,
+          .card-drag,
+          .card-drag *,
+          .global-animation-disabled,
+          .global-animation-disabled *,
+          .vab-magnifier,
+          .vab-magnifier *) {
+          text-shadow: none;
+          transition: var(--el-transition);
+          -webkit-font-smoothing: antialiased;
+        }
+
+        .vab-main {
+          .vab-app-main {
+            width: 100%;
+            padding: var(--el-padding);
+            overflow: hidden;
+
+            >section {
+              >[class*='-container'] {
+                min-height: var(--el-container-height);
+                padding: var(--el-padding);
+                background: var(--el-color-white);
+                border: 1px solid var(--el-border-color);
+                border-radius: var(--el-border-radius-base);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    .vue-shop-vite-box.mobile {
+      --el-margin: 18px;
+      --el-padding: 18px;
+
+      .ri-contract-right-line.fold-unfold {
+        position: fixed;
+        bottom: var(--el-margin);
+        left: var(--el-margin);
+        z-index: var(--el-z-index);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 50px;
+        height: 50px;
+        color: var(--el-color-white);
+        background: var(--el-color-primary);
+        border-radius: 50%;
+        box-shadow: 0 2px 12px 0 var(--el-color-primary);
+      }
+
+      /* 手机端移除毛玻璃遮罩 */
+      .el-overlay,
+      .el-image-viewer__mask {
+        backdrop-filter: none;
+      }
+
+      /* 手机端移除 v-modal、el-image-viewer__mask遮罩 */
+      .v-modal {
+        backdrop-filter: none;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      outline: none !important;
+      @include base-scrollbar;
+    }
+
+    [class*='ri-'] {
+      cursor: pointer;
+    }
+
+    /*a标签 */
+    a {
+      color: var(--el-color-primary);
+      text-decoration: none;
+    }
+
+    /*图片 */
+    img {
+      object-fit: cover;
+
+      &[src=''],
+      &:not([src]) {
+        opacity: 0;
+      }
+    }
+
+    /* vab-dropdown下拉动画 */
+    .vab-dropdown {
+      &-active {
+        transform: rotateZ(180deg);
+      }
+    }
+
+    /* vab-dot圆点动画 */
+    .vab-dot {
+      position: relative;
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      margin-right: 3px;
+      vertical-align: middle;
+      border-radius: 50%;
+
+      span {
+        position: absolute;
+        top: 0;
+        left: 0;
+        box-sizing: border-box;
+        display: block;
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        animation: vabDot 1.2s ease-in-out infinite;
+
+        @keyframes vabDot {
+          0% {
+            opacity: 0.6;
+            transform: scale(0.8);
+          }
+
+          to {
+            opacity: 0;
+            transform: scale(2.4);
+          }
+        }
+      }
+
+      &-success {
+        background: var(--el-color-success);
+
+        span {
+          background: var(--el-color-success);
+        }
+      }
+
+      &-error {
+        background: var(--el-color-error);
+
+        span {
+          background: var(--el-color-error);
+        }
+      }
+    }
+
+    /* vab-data-empty占位图 */
+    .vab-data-empty {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: calc(var(--el-container-height) - 250px);
+      margin: auto;
+    }
+
+    /* el-descriptions */
+    .el-descriptions {
+      &__title {
+        padding-left: 10px;
+        border-left: 5px solid var(--el-color-primary);
+      }
+    }
+
+    /* el-button按钮 */
+    .el-button {
+      border-radius: var(--el-border-radius-base);
+
+      &:hover,
+      &:focus,
+      &:active,
+      &.is-disabled {
+        background-clip: padding-box;
+      }
+
+      &.is-round {
+        border-radius: var(--el-border-radius-round);
+      }
+
+      &.is-circle {
+        border-radius: var(--el-border-radius-circle);
+      }
+
+      [class*='el-icon-']+span,
+      span+[class*='el-icon-'],
+      [class*='ri-']+span,
+      span+[class*='ri-'] {
+        margin-left: 3px;
+      }
+    }
+
+    a+a,
+    a+.el-button,
+    .el-button+a {
+      margin-left: 10px;
+    }
+
+    /* 毛玻璃遮罩 */
+    .el-overlay,
+    .el-image-viewer__mask {
+      background-color: rgba(0, 0, 0, 0.25);
+      backdrop-filter: blur(2.5px);
+      opacity: 1;
+
+      >div {
+        backdrop-filter: none;
+      }
+    }
+
+    /* v-modal、el-image-viewer__mask遮罩 */
+    .v-modal {
+      z-index: var(--el-z-index);
+      background-color: rgba(0, 0, 0, 0.25);
+      backdrop-filter: blur(2.5px);
+      opacity: 1;
+    }
+
+    /* el-loading-mask遮罩 */
+    .el-loading-mask {
+      z-index: calc(var(--el-z-index) - 10) !important;
+
+      &.is-fullscreen {
+        z-index: calc(var(--el-z-index) + 99) !important;
+      }
+    }
+
+    /* el-tag */
+    .el-tag {
+      border-radius: var(--el-border-radius-base);
+    }
+
+    /* .el-badge */
+
+    .el-badge {
+      &__content {
+        border: 0;
+      }
+    }
+
+    /*  .el-page-header */
+    .el-page-header {
+      margin: 0 0 var(--el-margin) 0;
+    }
+
+    /* el-alert */
+    .el-alert {
+      margin: 0 0 var(--el-margin) 0;
+
+      &.is-light {
+
+        .el-alert__icon,
+        .el-alert__close-btn {
+          color: currentColor;
+        }
+      }
+
+      &--success {
+        &.is-light {
+          color: var(--el-color-success);
+          background-color: var(--el-color-success-lighter);
+          border: 1px solid var(--el-color-success);
+        }
+
+        &.is-dark {
+          background-color: var(--el-color-success);
+          border: 1px solid var(--el-color-success);
+        }
+      }
+
+      &--info {
+        &.is-light {
+          color: var(--el-color-primary);
+          background-color: var(--el-color-primary-light-9);
+          border: 1px solid var(--el-color-primary);
+        }
+
+        &.is-dark {
+          background-color: var(--el-color-primary);
+          border: 1px solid var(--el-color-primary);
+        }
+      }
+
+      &--warning {
+        &.is-light {
+          color: var(--el-color-warning);
+          background-color: var(--el-color-warning-lighter);
+          border: 1px solid var(--el-color-warning);
+        }
+
+        &.is-dark {
+          background-color: var(--el-color-warning);
+          border: 1px solid var(--el-color-warning);
+        }
+      }
+
+      &--error {
+        &.is-light {
+          color: var(--el-color-error);
+          background-color: var(--el-color-error-lighter);
+          border: 1px solid var(--el-color-error);
+        }
+
+        &.is-dark {
+          background-color: var(--el-color-error);
+          border: 1px solid var(--el-color-error);
+        }
+      }
+    }
+
+    /* el-dropdown-menu */
+    .el-dropdown-menu__item {
+      [class*='ri-'] {
+        margin-right: 0;
+      }
+    }
+
+    /* nprogress进度条 */
+    #nprogress {
+      position: fixed;
+      z-index: calc(var(--el-z-index) + 3);
+
+      .bar {
+        background: var(--el-color-primary);
+      }
+
+      .peg {
+        box-shadow:
+          0 0 10px var(--el-color-primary),
+          0 0 5px var(--el-color-primary);
+      }
+    }
+
+    /* el-table表格 */
+    .el-table {
+      td {
+        .cell {
+          .el-image {
+            width: 50px;
+            height: 50px;
+            cursor: pointer;
+            border-radius: var(--el-border-radius-base);
+          }
+        }
+      }
+    }
+
+    /* el-pagination分页 */
+    .el-pagination {
+      --el-pagination-border-radius: var(--el-border-radius-base);
+      justify-content: center;
+      margin-top: var(--el-margin);
+    }
+
+    /* el-menu菜单 */
+    .el-menu {
+      user-select: none;
+
+      .el-sub-menu__title,
+      .el-menu-item {
+
+        svg,
+        [class*='ri-'] {
+          margin-right: 3px;
+          margin-left: 0;
+        }
+      }
+    }
+
+    /* el-tabs--top */
+    .el-tabs.el-tabs--top {
+      .el-tabs__item {
+
+        svg,
+        [class*='ri-'] {
+          margin-right: 3px;
+        }
+      }
+    }
+
+    /* el-breadcrumb */
+    .el-breadcrumb__inner {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      svg,
+      [class*='ri-'] {
+        margin-right: 3px;
+      }
+    }
+
+    /* el-dialog */
+    @media (max-width: 768px) {
+      .el-dialog {
+        width: auto !important;
+        margin: 5vw;
+      }
+    }
+
+    .el-dialog {
+      border-radius: var(--el-border-radius-base);
+
+      &__body {
+        .el-form:not(.el-form--inline) {
+          margin-right: 30px;
+        }
+      }
+    }
+
+    /* el-card卡片 */
+    .el-card {
+      margin-bottom: var(--el-margin);
+      border: 1px solid var(--el-border-color);
+      border-radius: var(--el-border-radius-base);
+      transition: var(--el-transition) !important;
+
+      &__header {
+        position: relative;
+
+        .card-header-tag {
+          position: absolute;
+          top: 15px;
+          right: 20px;
+        }
+      }
+
+      &__body {
+        padding: var(--el-padding);
+      }
+    }
+
+    /* .vab-hey-message */
+    .vab-hey-message {
+      @mixin vab-hey-message {
+        padding: 15px;
+        background-color: var(--el-color-white);
+        border-color: var(--el-color-white);
+        box-shadow: 0 5px 10px rgba(0, 0, 0, 0.15);
+
+        .el-message__content {
+          color: var(--el-color-grey);
+        }
+
+        .el-icon-close {
+          color: var(--el-color-grey);
+
+          &:hover {
+            opacity: 0.8;
+          }
+        }
+      }
+
+      &-info {
+        @include vab-hey-message;
+
+        i {
+          color: var(--el-color-grey);
+        }
+      }
+
+      &-success {
+        @include vab-hey-message;
+
+        i {
+          color: var(--el-color-success);
+        }
+      }
+
+      &-warning {
+        @include vab-hey-message;
+
+        i {
+          color: var(--el-color-warning);
+        }
+      }
+
+      &-error {
+        @include vab-hey-message;
+
+        i {
+          color: var(--el-color-error);
+        }
+      }
+    }
+
+    /* vab-table-expand */
+    .vab-table-expand {
+      padding: var(--el-padding);
+      line-height: 30px;
+
+      &-title {
+        display: inline-block;
+        width: 80px;
+        font-weight: bold;
+      }
+    }
+
+    /* el-color-picker */
+    .el-color-picker {
+      &__trigger {
+        width: 20px;
+        height: 20px;
+        padding: 0;
+        border-radius: 0;
+      }
+
+      &__color {
+        border: 0;
+      }
+    }
+
+    /* svg */
+    [fill='#6c63ff'],
+    [fill='#7CADF6'] {
+      fill: var(--el-color-primary) !important;
+    }
+
+    .el-menu--horizontal .el-menu-item:not(.is-disabled):focus,
+    .el-menu--horizontal .el-menu-item:not(.is-disabled):hover {
+      background-color: var(--el-color-primary) !important;
+    }
+
+    .el-avatar {
+      background-color: var(--el-color-primary-light-9) !important;
+    }
+
+    .no-background-container {
+      padding: 0 !important;
+      background: var(--el-background-color) !important;
+      border: 0 !important;
+    }
+
+    /* 表格全屏 */
+    .vab-table-fullscreen {
+      position: fixed !important;
+      inset: 0 !important;
+      z-index: calc(var(--el-z-index) + 3) !important;
+      box-sizing: border-box !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      overflow: auto !important;
+      border: 0 !important;
+      border-radius: 0 !important;
+    }
+
+    /* 数据大屏全屏 */
+    .vab-data-fullscreen {
+      position: fixed !important;
+      inset: 0 !important;
+      z-index: calc(var(--el-z-index) + 3) !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      border: 0 !important;
+      border-radius: 0 !important;
+    }
+
+    .el-upload.el-upload--text+.el-button {
+      margin-left: 10px;
+    }
+
+    /* 表格自动高度 */
+    :not(.no-background-container).table-auto-height {
+      display: flex;
+      flex-direction: column;
+      height: var(--el-container-height);
+
+      .el-table {
+        flex: 1;
+      }
+
+      .vab-auto-box {
+        flex: 1;
+        padding: var(--el-padding);
+        overflow-y: auto;
+
+        >.el-row {
+          margin-top: calc(0px - var(--el-margin));
+        }
+      }
+    }
+
+    .no-background-container.table-auto-height {
+      >.el-row {
+        margin-bottom: calc(0px - var(--el-margin));
+      }
+
+      .el-card {
+        .el-card__body {
+          display: flex;
+          flex-direction: column;
+          height: calc(var(--el-container-height) - 2px);
+
+          .el-table {
+            flex: 1;
+          }
+        }
+      }
+    }
+
+    :not(.table-auto-height).no-background-container {
+      >.el-row:has(.el-card) {
+        margin-bottom: calc(0px - var(--el-margin));
+      }
+    }
+
+    .jv-container.jv-light {
+      background: var(--el-color-white);
+
+      .jv-key,
+      .jv-item.jv-object {
+        color: var(--el-color-black);
+      }
+    }
+
+    .vab-column-bar .el-tabs .el-tabs__nav {
+      margin-left: -1px !important;
+      border-right: 1px solid var(--el-menu-background-color) !important;
+    }
+
+    .vab-logo-column .logo {
+      border-right: 1px solid var(--el-menu-background-color) !important;
+    }
+
+    .vab-side-bar {
+      margin-left: -1px !important;
+      border-right: 1px solid var(--el-menu-background-color) !important;
+    }
+
+    .el-space {
+      &__item {
+        &:empty {
+          display: none;
+        }
+      }
+    }
+
+    @media (max-width: 768px) {
+      .el-space {
+        &__item {
+          &:has([class*='hidden']) {
+            display: none;
+          }
+        }
+      }
+    }
+
+    /* 旋转动画 */
+    .rotate {
+      animation: rotate 1s linear infinite;
+
+      @keyframes rotate {
+        0% {
+          transform: rotate(0);
+        }
+
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+    }
+  }
+}

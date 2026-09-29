@@ -1,0 +1,57 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "EDTIB控制中台",
+  "mainBinaryName": "edtib-console",
+  "version": "1.0.0",
+  "identifier": "com.edtib.console",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1430",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "EDTIB控制中台",
+        "width": 1280,
+        "height": 800,
+        "minWidth": 1024,
+        "minHeight": 680,
+        "resizable": true,
+        "fullscreen": false
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["app", "dmg", "nsis"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "copyright": "© 2025 Edtib Technology Co., Ltd.",
+    "category": "Business",
+    "shortDescription": "EDTIB控制中台",
+    "longDescription": "EDTIB控制中台桌面客户端",
+    "createUpdaterArtifacts": true
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDcyMDcyMkIxRENEMTVCRjUKUldUMVc5SGNzU0lIY29RdXNoNWRWbW55bFdDbWtGMU1hRGlIbENhRmo1MnhDeTZZQTJraUhONEMK",
+      "endpoints": [
+        "https://github.com/trexwb/Edtib-Console/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
+  }
+}

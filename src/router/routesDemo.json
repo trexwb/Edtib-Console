@@ -1,0 +1,958 @@
+[
+    {
+        "meta": {
+            "icon": "home-2-line",
+            "title": "首页",
+            "hidden": false,
+            "levelHidden": true,
+            "breadcrumbHidden": true
+        },
+        "name": "Root",
+        "path": "/",
+        "children": [
+            {
+                "meta": {
+                    "icon": "home-2-line",
+                    "title": "首页",
+                    "noColumn": true,
+                    "noKeepAlive": true
+                },
+                "name": "Index",
+                "path": "index",
+                "component": "/@/views/index/index.vue"
+            }
+        ],
+        "component": "Layout"
+    },
+    {
+        "meta": {
+            "icon": "bnb-fill",
+            "guard": [
+                "standardsProducts",
+                "standardsProductsTemp",
+                "standardsProductsReview",
+                "standardsStandards",
+                "standardsShapes",
+                "standardsCategories"
+            ],
+            "title": "标准管理"
+        },
+        "name": "StandardsRoot",
+        "path": "/standards",
+        "children": [
+            {
+                "meta": {
+                    "icon": "compasses-2-fill",
+                    "guard": [
+                        "standardsProducts",
+                        "standardsProductsTemp",
+                        "standardsProductsReview",
+                        "standardsStandards",
+                        "standardsShapes",
+                        "standardsCategories"
+                    ],
+                    "title": "产品标准"
+                },
+                "name": "StandardsProducts",
+                "path": "products",
+                "children": [
+                    {
+                        "meta": {
+                            "icon": "compass-4-fill",
+                            "guard": [
+                                "standardsProducts"
+                            ],
+                            "title": "正式标准库",
+                            "noKeepAlive": true
+                        },
+                        "name": "StandardsProductsPublish",
+                        "path": "publish",
+                        "component": "/@/views/standards/products/publish.vue"
+                    },
+                    {
+                        "meta": {
+                            "icon": "contrast-2-line",
+                            "guard": [
+                                "standardsProductsTemp"
+                            ],
+                            "title": "临时标准库",
+                            "noKeepAlive": true
+                        },
+                        "name": "StandardsProductsTemp",
+                        "path": "temp",
+                        "component": "/@/views/standards/products/temp.vue"
+                    },
+                    {
+                        "meta": {
+                            "icon": "copper-diamond-fill",
+                            "guard": [
+                                "standardsProductsReview"
+                            ],
+                            "title": "待校对标准",
+                            "noKeepAlive": true
+                        },
+                        "name": "StandardsProductsReview",
+                        "path": "review",
+                        "component": "/@/views/standards/products/review.vue"
+                    },
+                    {
+                        "meta": {
+                            "icon": "star-s-fill",
+                            "guard": [
+                                "standardsStandards"
+                            ],
+                            "title": "标准分类",
+                            "noKeepAlive": true
+                        },
+                        "name": "StandardsProductsStandards",
+                        "path": "standards",
+                        "component": "/@/views/standards/products/standards.vue"
+                    },
+                    {
+                        "meta": {
+                            "icon": "shapes-fill",
+                            "guard": [
+                                "standardsShapes"
+                            ],
+                            "title": "形状分类",
+                            "noKeepAlive": true
+                        },
+                        "name": "StandardsProductsShapes",
+                        "path": "shapes",
+                        "component": "/@/views/standards/products/shapes.vue"
+                    },
+                    {
+                        "meta": {
+                            "icon": "product-hunt-fill",
+                            "guard": [
+                                "standardsCategories"
+                            ],
+                            "title": "产品分类",
+                            "noKeepAlive": true
+                        },
+                        "name": "StandardsProductsCategories",
+                        "path": "categories",
+                        "component": "/@/views/standards/products/categories.vue"
+                    }
+                ],
+                "component": "Layout"
+            },
+            {
+                "meta": {
+                    "icon": "bring-to-front",
+                    "guard": [
+                        "standardsExteriors",
+                        "standardsExteriorsTemp",
+                        "standardsExteriorsReview"
+                    ],
+                    "title": "表面标准",
+                    "noKeepAlive": true
+                },
+                "name": "StandardsExteriors",
+                "path": "exteriors",
+                "children": [],
+                "component": "Layout"
+            },
+            {
+                "meta": {
+                    "icon": "progress-4-fill",
+                    "guard": [
+                        "standardsCapabilities",
+                        "standardsCapabilitiesTemp",
+                        "standardsCapabilitiesReview"
+                    ],
+                    "title": "性能标准",
+                    "noKeepAlive": true
+                },
+                "name": "StandardsCapabilities",
+                "path": "capabilities",
+                "children": [],
+                "component": "Layout"
+            },
+            {
+                "meta": {
+                    "icon": "format-clear",
+                    "guard": [
+                        "standardsMaterials",
+                        "standardsMaterialCategories"
+                    ],
+                    "title": "材料标准",
+                    "noKeepAlive": true
+                },
+                "name": "StandardsMaterials",
+                "path": "materials",
+                "children": [
+                    {
+                        "meta": {
+                            "icon": "book-2-fill",
+                            "guard": [
+                                "standardsMaterials"
+                            ],
+                            "title": "材料库管理",
+                            "noKeepAlive": true
+                        },
+                        "name": "StandardsMaterialsManage",
+                        "path": "manage",
+                        "component": "/@/views/standards/materials/materials.vue"
+                    },
+                    {
+                        "meta": {
+                            "icon": "price-tag-3-fill",
+                            "guard": [
+                                "standardsMaterialCategories"
+                            ],
+                            "title": "类别管理",
+                            "noKeepAlive": true
+                        },
+                        "name": "StandardsMaterialCategories",
+                        "path": "categories",
+                        "component": "/@/views/standards/materials/categories.vue"
+                    }
+                ],
+                "component": "Layout"
+            }
+        ],
+        "component": "Layout"
+    },
+    {
+        "meta": {
+            "icon": "file-unknow-fill",
+            "guard": [
+                "standardsVariables",
+                "standardsFormulas",
+                "standardsInterpretations",
+                "standardsDocs",
+                "standardsDownloads"
+            ],
+            "title": "知识管理"
+        },
+        "name": "WikisRoot",
+        "path": "/wikis",
+        "children": [
+            {
+                "meta": {
+                    "icon": "book-2-fill",
+                    "guard": [
+                        "standardsInterpretations",
+                        "standardsDocs",
+                        "standardsDocsLogs"
+                    ],
+                    "title": "文档管理"
+                },
+                "name": "WikisDocs",
+                "path": "docs",
+                "children": [
+                    {
+                        "meta": {
+                            "icon": "upload-cloud-fill",
+                            "guard": [
+                                "standardsDocs"
+                            ],
+                            "title": "上传文件",
+                            "noKeepAlive": true
+                        },
+                        "name": "WikisDocsFiles",
+                        "path": "files",
+                        "component": "/@/views/wikis/docs/files.vue"
+                    },
+                    {
+                        "meta": {
+                            "icon": "book-read-fill",
+                            "guard": [
+                                "standardsInterpretations"
+                            ],
+                            "title": "标准解读",
+                            "noKeepAlive": true
+                        },
+                        "name": "WikisDocsInterpretations",
+                        "path": "interpretations",
+                        "component": "/@/views/wikis/docs/interpretations.vue"
+                    },
+                    {
+                        "meta": {
+                            "icon": "arrow-down-circle-fill",
+                            "guard": [
+                                "standardsDownloads"
+                            ],
+                            "title": "下载记录",
+                            "noKeepAlive": true
+                        },
+                        "name": "WikisDocsDownloads",
+                        "path": "downloads",
+                        "component": "/@/views/wikis/docs/downloads.vue"
+                    }
+                ],
+                "component": "Layout"
+            },
+            {
+                "meta": {
+                    "icon": "calculator-fill",
+                    "guard": [
+                        "standardsVariables",
+                        "standardsFormulas"
+                    ],
+                    "title": "计算公式"
+                },
+                "name": "WikisCalculations",
+                "path": "calculations",
+                "children": [
+                    {
+                        "meta": {
+                            "icon": "file-transfer-fill",
+                            "guard": [
+                                "standardsVariables"
+                            ],
+                            "title": "变量设置",
+                            "noKeepAlive": true
+                        },
+                        "name": "WikisCalculationsVariables",
+                        "path": "variables",
+                        "component": "/@/views/wikis/calculations/variables.vue"
+                    },
+                    {
+                        "meta": {
+                            "icon": "formula",
+                            "guard": [
+                                "standardsFormulas"
+                            ],
+                            "title": "公式管理",
+                            "noKeepAlive": true
+                        },
+                        "name": "WikisCalculationsFormulas",
+                        "path": "formulas",
+                        "component": "/@/views/wikis/calculations/formulas.vue"
+                    }
+                ],
+                "component": "Layout"
+            },
+            {
+                "meta": {
+                    "icon": "robot-2-fill",
+                    "guard": [
+                        "fastenerAiSessions",
+                        "fastenerAiToolCalls",
+                        "fastenerAiUsage",
+                        "fastenerAiBm25",
+                        "fastenerAiTools"
+                    ],
+                    "title": "AI 运维"
+                },
+                "name": "FastenerAiRoot",
+                "path": "fastener",
+                "children": [
+                    {
+                        "meta": {
+                            "icon": "chat-3-fill",
+                            "guard": [
+                                "fastenerAiSessions"
+                            ],
+                            "title": "AI 会话",
+                            "noKeepAlive": true
+                        },
+                        "name": "FastenerAiSessions",
+                        "path": "ai/sessions",
+                        "component": "/@/views/fastener/ai/sessions.vue"
+                    },
+                    {
+                        "meta": {
+                            "icon": "shield-keyhole-fill",
+                            "guard": [
+                                "fastenerAiToolCalls"
+                            ],
+                            "title": "工具调用审计",
+                            "noKeepAlive": true
+                        },
+                        "name": "FastenerAiToolCalls",
+                        "path": "ai/tool-calls",
+                        "component": "/@/views/fastener/ai/toolCalls.vue"
+                    },
+                    {
+                        "meta": {
+                            "icon": "bar-chart-2-fill",
+                            "guard": [
+                                "fastenerAiUsage"
+                            ],
+                            "title": "用量统计",
+                            "noKeepAlive": true
+                        },
+                        "name": "FastenerAiUsage",
+                        "path": "ai/usage",
+                        "component": "/@/views/fastener/ai/usage.vue"
+                    },
+                    {
+                        "meta": {
+                            "icon": "database-2-fill",
+                            "guard": [
+                                "fastenerAiBm25"
+                            ],
+                            "title": "BM25 索引",
+                            "noKeepAlive": true
+                        },
+                        "name": "FastenerAiBm25",
+                        "path": "ai/bm25",
+                        "component": "/@/views/fastener/ai/bm25.vue"
+                    },
+                    {
+                        "meta": {
+                            "icon": "tools-fill",
+                            "guard": [
+                                "fastenerAiTools"
+                            ],
+                            "title": "工具清单",
+                            "noKeepAlive": true
+                        },
+                        "name": "FastenerAiTools",
+                        "path": "ai/tools",
+                        "component": "/@/views/fastener/ai/tools.vue"
+                    }
+                ],
+                "component": "Layout"
+            }
+        ],
+        "component": "Layout"
+    },
+    {
+        "meta": {
+            "icon": "customer-service-2-fill",
+            "guard": [
+                "customersSerials",
+                "customersUsers",
+                "customersUsersReview",
+                "customersUsersTransactions",
+                "customersOrganizations",
+                "customersOrganizationsReview",
+                "customersOrganizationsTransactions"
+            ],
+            "title": "客户管理"
+        },
+        "name": "CustomersRoot",
+        "path": "/customers",
+        "children": [
+            {
+                "meta": {
+                    "icon": "ticket-2-fill",
+                    "guard": [
+                        "customersSerials"
+                    ],
+                    "title": "优惠管理"
+                },
+                "name": "CustomersDiscounts",
+                "path": "discounts",
+                "children": [
+                    {
+                        "meta": {
+                            "icon": "ticket-line",
+                            "guard": [
+                                "customersSerials"
+                            ],
+                            "title": "序列号管理",
+                            "noKeepAlive": true
+                        },
+                        "name": "CustomersDiscountsSerials",
+                        "path": "serials",
+                        "component": "/@/views/customers/discounts/serials.vue"
+                    }
+                ],
+                "component": "Layout"
+            },
+            {
+                "meta": {
+                    "icon": "user-community-fill",
+                    "guard": [
+                        "customersUsers",
+                        "customersUsersReview",
+                        "customersOrganizations",
+                        "customersOrganizationsReview"
+                    ],
+                    "title": "开户管理"
+                },
+                "name": "CustomersOpen",
+                "path": "open",
+                "children": [
+                    {
+                        "meta": {
+                            "icon": "user-2-fill",
+                            "guard": [
+                                "customersUsers"
+                            ],
+                            "title": "个人开户",
+                            "noKeepAlive": true
+                        },
+                        "name": "CustomersOpenUsers",
+                        "path": "users",
+                        "component": "/@/views/customers/open/users.vue"
+                    },
+                    {
+                        "meta": {
+                            "icon": "user-follow-fill",
+                            "guard": [
+                                "customersUsersReview"
+                            ],
+                            "title": "个人审核",
+                            "noKeepAlive": true
+                        },
+                        "name": "CustomersOpenUsersReview",
+                        "path": "usersReview",
+                        "component": "/@/views/customers/open/usersReview.vue"
+                    },
+                    {
+                        "meta": {
+                            "icon": "organization-chart",
+                            "guard": [
+                                "customersOrganizations"
+                            ],
+                            "title": "企业开户",
+                            "noKeepAlive": true
+                        },
+                        "name": "CustomersOpenOrganizations",
+                        "path": "organizations",
+                        "component": "/@/views/customers/open/organizations.vue"
+                    },
+                    {
+                        "meta": {
+                            "icon": "chat-check-fill",
+                            "guard": [
+                                "customersOrganizationsReview"
+                            ],
+                            "title": "企业审核",
+                            "noKeepAlive": true
+                        },
+                        "name": "CustomersOpenOrganizationsReview",
+                        "path": "organizationsReview",
+                        "component": "/@/views/customers/open/organizationsReview.vue"
+                    }
+                ],
+                "component": "Layout"
+            },
+            {
+                "meta": {
+                    "icon": "trademark-fill",
+                    "guard": [
+                        "customersUsersTransactions",
+                        "customersOrganizationsTransactions"
+                    ],
+                    "title": "交易记录",
+                    "noKeepAlive": true
+                },
+                "name": "CustomersTransactions",
+                "path": "transactions",
+                "children": [],
+                "component": "/@/views/customers/transactions/index.vue"
+            },
+            {
+                "meta": {
+                    "icon": "coin-line",
+                    "title": "积分"
+                },
+                "name": "FastenerCreditsRoot",
+                "path": "fastener-credits",
+                "component": "Layout",
+                "children": [
+                    {
+                        "meta": {
+                            "icon": "coin-line",
+                            "guard": [
+                                "fastenerCommerceCredits"
+                            ],
+                            "title": "积分流水",
+                            "noKeepAlive": true
+                        },
+                        "name": "FastenerCommerceCredits",
+                        "path": "credits",
+                        "component": "/@/views/fastener/commerce/credits.vue"
+                    }
+                ]
+            },
+            {
+                "meta": {
+                    "icon": "file-list-3-line",
+                    "title": "订单"
+                },
+                "name": "FastenerOrdersRoot",
+                "path": "fastener-orders",
+                "component": "Layout",
+                "children": [
+                    {
+                        "meta": {
+                            "icon": "file-list-3-line",
+                            "guard": [
+                                "fastenerCommerceOrders"
+                            ],
+                            "title": "订单管理",
+                            "noKeepAlive": true
+                        },
+                        "name": "FastenerCommerceOrders",
+                        "path": "orders",
+                        "component": "/@/views/fastener/commerce/orders.vue"
+                    },
+                    {
+                        "meta": {
+                            "icon": "shopping-bag-3-line",
+                            "guard": [
+                                "fastenerCommercePurchases"
+                            ],
+                            "title": "标准购买记录",
+                            "noKeepAlive": true
+                        },
+                        "name": "FastenerCommercePurchases",
+                        "path": "purchases",
+                        "component": "/@/views/fastener/commerce/purchases.vue"
+                    },
+                    {
+                        "meta": {
+                            "icon": "vip-crown-2-line",
+                            "guard": [
+                                "fastenerCommerceSubscriptionPlans"
+                            ],
+                            "title": "订阅计划",
+                            "noKeepAlive": true
+                        },
+                        "name": "FastenerCommerceSubscriptionPlans",
+                        "path": "plans",
+                        "component": "/@/views/fastener/commerce/subscriptionPlans.vue"
+                    },
+                    {
+                        "meta": {
+                            "icon": "calendar-check-line",
+                            "guard": [
+                                "fastenerCommerceSubscriptions"
+                            ],
+                            "title": "订阅记录",
+                            "noKeepAlive": true
+                        },
+                        "name": "FastenerCommerceSubscriptions",
+                        "path": "subscriptions",
+                        "component": "/@/views/fastener/commerce/subscriptions.vue"
+                    }
+                ]
+            }
+        ],
+        "component": "Layout"
+    },
+    {
+        "meta": {
+            "icon": "settings-fill",
+            "guard": [
+                "accountsSecrets",
+                "accountsRoles",
+                "accountsPermissions",
+                "accountsUsers",
+                "attachmentsSecrets",
+                "attachmentsConfigs",
+                "customersSecrets",
+                "standardsSecrets",
+                "systemsSecrets",
+                "systemsConfigs",
+                "systemsLanguages",
+                "systemsCaches",
+                "systemsServers",
+                "systemsDatabases",
+                "systemsClients",
+                "systemsPayment",
+                "systemsVersions"
+            ],
+            "title": "系统管理"
+        },
+        "name": "SystemsRoot",
+        "path": "/systems",
+        "children": [
+            {
+                "meta": {
+                    "icon": "settings-6-fill",
+                    "guard": [
+                        "accountsSecrets",
+                        "attachmentsSecrets",
+                        "attachmentsConfigs",
+                        "attachmentsFiles",
+                        "customersSecrets",
+                        "standardsSecrets",
+                        "systemsSecrets",
+                        "systemsConfigs",
+                        "systemsLanguages",
+                        "systemsCaches",
+                        "systemsServers"
+                    ],
+                    "title": "系统配置"
+                },
+                "name": "SystemsBasis",
+                "path": "basis",
+                "children": [
+                    {
+                        "meta": {
+                            "icon": "key-2-fill",
+                            "guard": [
+                                "systemsSecrets"
+                            ],
+                            "title": "API密钥",
+                            "noKeepAlive": true
+                        },
+                        "name": "SystemsBasisSecrets",
+                        "path": "secrets",
+                        "component": "/@/views/systems/basis/secrets.vue"
+                    },
+                    {
+                        "meta": {
+                            "icon": "keyboard-fill",
+                            "guard": [
+                                "systemsConfigs"
+                            ],
+                            "title": "环境配置",
+                            "noKeepAlive": true
+                        },
+                        "name": "SystemsBasisConfigs",
+                        "path": "configs",
+                        "component": "/@/views/systems/basis/configs.vue"
+                    },
+                    {
+                        "meta": {
+                            "icon": "translate",
+                            "guard": [
+                                "systemsLanguages"
+                            ],
+                            "title": "多语言",
+                            "noKeepAlive": true
+                        },
+                        "name": "SystemsBasisLanguages",
+                        "path": "languages",
+                        "component": "/@/views/systems/basis/languages.vue"
+                    },
+                    {
+                        "meta": {
+                            "icon": "delete-bin-2-line",
+                            "guard": [
+                                "systemsCaches"
+                            ],
+                            "title": "缓存管理",
+                            "noKeepAlive": true
+                        },
+                        "name": "SystemsBasisCaches",
+                        "path": "caches",
+                        "component": "/@/views/systems/basis/caches.vue"
+                    },
+                    {
+                        "meta": {
+                            "icon": "apps-2-ai-line",
+                            "guard": [
+                                "systemsServers"
+                            ],
+                            "title": "应用服务",
+                            "noKeepAlive": true
+                        },
+                        "name": "SystemsBasisServers",
+                        "path": "servers",
+                        "component": "/@/views/systems/basis/servers.vue"
+                    }
+                ],
+                "component": "Layout"
+            },
+            {
+                "meta": {
+                    "icon": "database-2-fill",
+                    "guard": [
+                        "systemsDatabases"
+                    ],
+                    "title": "数据库管理",
+                    "noKeepAlive": true
+                },
+                "name": "SystemsDatabase",
+                "path": "database",
+                "children": [
+                    {
+                        "meta": {
+                            "icon": "database-fill",
+                            "guard": [
+                                "systemsDatabases"
+                            ],
+                            "title": "数据库配置",
+                            "noKeepAlive": true
+                        },
+                        "name": "SystemsDatabaseServers",
+                        "path": "configs",
+                        "component": "/@/views/systems/database/configs.vue"
+                    },
+                    {
+                        "meta": {
+                            "icon": "chat-settings-fill",
+                            "guard": [
+                                "systemsDatabases"
+                            ],
+                            "title": "数据备份",
+                            "noKeepAlive": true
+                        },
+                        "name": "SystemsDatabaseBackup",
+                        "path": "backup",
+                        "component": "/@/views/systems/database/backup.vue"
+                    }
+                ],
+                "component": "Layout"
+            },
+            {
+                "meta": {
+                    "icon": "file-zip-fill",
+                    "guard": [
+                        "attachmentsConfigs",
+                        "attachmentsFiles"
+                    ],
+                    "title": "附件管理",
+                    "noKeepAlive": true
+                },
+                "name": "SystemsUpload",
+                "path": "attachments",
+                "children": [
+                    {
+                        "meta": {
+                            "icon": "file-upload-line",
+                            "guard": [
+                                "attachmentsConfigs"
+                            ],
+                            "title": "上传配置",
+                            "noKeepAlive": true
+                        },
+                        "name": "SystemsUploadBackup",
+                        "path": "configs",
+                        "component": "/@/views/systems/attachments/configs.vue"
+                    },
+                    {
+                        "meta": {
+                            "icon": "file-copy-2-fill",
+                            "guard": [
+                                "attachmentsFiles"
+                            ],
+                            "title": "附件管理",
+                            "noKeepAlive": true
+                        },
+                        "name": "SystemsUploadFiles",
+                        "path": "files",
+                        "component": "/@/views/systems/attachments/files.vue"
+                    }
+                ],
+                "component": "Layout"
+            },
+            {
+                "meta": {
+                    "icon": "computer-fill",
+                    "guard": [
+                        "systemsClients"
+                    ],
+                    "title": "客户端管理",
+                    "noKeepAlive": true
+                },
+                "name": "SystemsClients",
+                "path": "clients",
+                "children": [
+                    {
+                        "meta": {
+                            "icon": "device-recover-line",
+                            "guard": [
+                                "systemsVersions"
+                            ],
+                            "title": "版本控制",
+                            "noKeepAlive": true
+                        },
+                        "name": "SystemsClientsVersions",
+                        "path": "versions",
+                        "component": "/@/views/systems/clients/versions.vue"
+                    }
+                ],
+                "component": "Layout"
+            },
+            {
+                "meta": {
+                    "icon": "secure-payment-fill",
+                    "guard": [
+                        "systemsPayment"
+                    ],
+                    "title": "支付配置",
+                    "noKeepAlive": true
+                },
+                "name": "SystemsPayment",
+                "path": "payment",
+                "children": [
+                    {
+                        "meta": {
+                            "icon": "money-cny-box-fill",
+                            "guard": [
+                                "systemsPayment"
+                            ],
+                            "title": "支付配置",
+                            "noKeepAlive": true
+                        },
+                        "name": "SystemsPaymentConfig",
+                        "path": "configs",
+                        "component": "/@/views/systems/payment/configs.vue"
+                    },
+                    {
+                        "meta": {
+                            "icon": "money-dollar-circle-fill",
+                            "guard": [
+                                "systemsPayment"
+                            ],
+                            "title": "定价管理",
+                            "noKeepAlive": true
+                        },
+                        "name": "SystemsPaymentPrices",
+                        "path": "prices",
+                        "component": "/@/views/systems/payment/prices.vue"
+                    }
+                ],
+                "component": "Layout"
+            },
+            {
+                "meta": {
+                    "icon": "shield-user-fill",
+                    "guard": [
+                        "accountsRoles",
+                        "accountsPermissions",
+                        "accountsUsers"
+                    ],
+                    "title": "账号管理"
+                },
+                "name": "SystemsAccounts",
+                "path": "accounts",
+                "children": [
+                    {
+                        "meta": {
+                            "icon": "map-pin-user-fill",
+                            "guard": [
+                                "accountsRoles"
+                            ],
+                            "title": "角色管理",
+                            "noKeepAlive": true
+                        },
+                        "name": "SystemsAccountsRoles",
+                        "path": "roles",
+                        "component": "/@/views/systems/accounts/roles.vue"
+                    },
+                    {
+                        "meta": {
+                            "icon": "user-settings-line",
+                            "guard": [
+                                "accountsUsers"
+                            ],
+                            "title": "用户账号",
+                            "noKeepAlive": true
+                        },
+                        "name": "SystemsAccountsUsers",
+                        "path": "users",
+                        "component": "/@/views/systems/accounts/users.vue"
+                    },
+                    {
+                        "meta": {
+                            "icon": "user-forbid-fill",
+                            "guard": [
+                                "accountsPermissions"
+                            ],
+                            "title": "权限管理",
+                            "noKeepAlive": true
+                        },
+                        "name": "SystemsAccountsPermissions",
+                        "path": "permissions",
+                        "component": "/@/views/systems/accounts/permissions.vue"
+                    }
+                ],
+                "component": "Layout"
+            }
+        ],
+        "component": "Layout"
+    }
+]

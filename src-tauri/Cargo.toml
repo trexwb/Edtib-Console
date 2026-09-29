@@ -1,0 +1,76 @@
+[package]
+name = "edtib-console"
+version = "1.0.0"
+description = "EDTIB控制中台"
+authors = ["Edtib Technology"]
+edition = "2021"
+rust-version = "1.90"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+# The `_lib` suffix may seem redundant but it is necessary
+# to make the lib name unique and wouldn't conflict with the bin name.
+# This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
+name = "edtib_console_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+# 桌面运行时
+tauri = { version = "2", features = [] }
+# 插件：打开文件/URL、在线更新、进程重启（更新后 relaunch）、单实例、日志
+tauri-plugin-opener = "2"
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
+tauri-plugin-single-instance = "2"
+tauri-plugin-log = "2"
+
+# 序列化
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# 错误处理
+thiserror = "2"
+
+# 本地数据库（替代老项目的 Express + Knex + SQLite 本地服务）
+rusqlite = { version = "0.40", features = ["bundled"] }
+
+# 定时任务（替代老项目的 node-schedule）
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "time", "sync"] }
+
+# HTTP 转发（等价老项目 electron/src/controller/request.ts 中 axios 转发 gateway）
+# 特性集与 tauri-plugin-updater 完全一致（json/stream/rustls-no-provider/system-proxy），
+# 不额外引入 native-tls/openssl；证书校验走系统信任链（rustls-platform-verifier）。
+reqwest = { version = "0.13", default-features = false, features = [
+    "json",
+    "stream",
+    "rustls-no-provider",
+    "system-proxy",
+] }
+# reqwest 的 `rustls-no-provider` 需进程级安装默认加密后端（ring，与 updater 同款，幂等）
+rustls = { version = "0.23", default-features = false, features = ["ring"] }
+# 随机 IV（等价 web 前端 CryptoJS.lib.WordArray.random(16) 生成 iv）
+getrandom = "0.2"
+
+# 加密（等价老项目 electron/src/config/cryptTool.ts：md5 / sha256 / aes-256-cbc）
+md5 = "0.7"
+sha2 = "0.10"
+aes = "0.8"
+cbc = "0.1"
+hex = "0.4"
+
+# 时间（等价老项目 moment.utc(...).tz('Asia/Shanghai').format(...)）
+chrono = "0.4"
+
+# 日志门面
+log = "0.4"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true
