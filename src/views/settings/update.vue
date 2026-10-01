@@ -17,12 +17,18 @@
     </div>
     <el-button v-show="!isUpdateAvailable" v-loading="isCheckLoading" type="primary"
       @click="checkUpdate">{{ translate('检查更新') }}</el-button>
+    <el-button v-show="updateReady" v-loading="installing" type="success"
+      @click="installUpdate">{{ translate('重启并安装') }}</el-button>
     <el-text v-show="!isUpdateAvailable && isCheckUpdate && !isCheckLoading" class="mx-1"
       type="success">{{ translate('目前已经是最新版本，不用更新') }}</el-text>
   </div>
 </template>
 
 <script lang="ts" setup>
+// [迁移调整] 版本/更新相关调用统一走 src/bridge 桥接层（Tauri invoke），
+// 不再直接访问 window.electronAPI（浏览器宿主下该对象不存在，老代码会在 onMounted 抛错）
+import { ElMessage } from 'element-plus'
+import { bridge } from '/@/bridge'
 import { translate } from '/@/i18n'
 const templateName = 'SettingsCache'
 defineOptions({
@@ -33,7 +39,11 @@ const appVersion = ref('');
 const isCheckUpdate = ref(false);
 const isCheckLoading = ref(false);
 const isUpdateAvailable = ref(false);
+const updateReady = ref(false);
+const installing = ref(false);
 const downloadProgress = ref(0);
+
+const disposers: Array<() => void> = [];
 
 const handleUpdateAvailable = () => {
   // console.log('handleUpdateAvailable');
@@ -45,29 +55,49 @@ const handleUpdateNotAvailable = () => {
   isUpdateAvailable.value = false;
   isCheckLoading.value = false;
 };
-const handleDownloadProgress = (percent: number) => {
-  // console.log('handleDownloadProgress', percent);
-  downloadProgress.value = Number(Number(percent || downloadProgress.value++).toFixed(1));
+const handleDownloadProgress = (_event: unknown, payload: any) => {
+  // Rust 侧 emit 的是 { percent, transferred, total } 对象，直接当数字使用会得到 NaN
+  downloadProgress.value = Number(Number(payload?.percent ?? 0).toFixed(1));
 };
 const handleUpdateDownloaded = () => {
   // console.log('handleUpdateDownloaded');
   isUpdateAvailable.value = false;
-  // 自定义重启
-  // window.electronAPI.restartApp(); // 假设你已经定义了一个重启方法
+  downloadProgress.value = 100;
+  updateReady.value = true;
 };
 const checkUpdate = async () => {
   isCheckUpdate.value = true;
   isCheckLoading.value = true;
-  await window.electronAPI.checkUpdate();
+  updateReady.value = false;
+  downloadProgress.value = 0;
+  await bridge.checkUpdate();
 }
+const installUpdate = async () => {
+  installing.value = true;
+  try {
+    // 安装 check_update 已下载的更新包（Rust confirm_update → Update::install），完成后重启生效
+    await bridge.confirmUpdate();
+    bridge.restartApp();
+  } catch (error: any) {
+    installing.value = false;
+    ElMessage({ message: error?.message ?? String(error), type: 'error' });
+  }
+};
 
 onMounted(async () => {
-  appVersion.value = await window.electronAPI.getAppVersion();
-  window.electronAPI.onUpdateAvailable(handleUpdateAvailable);
-  window.electronAPI.onUpdateNotAvailable(handleUpdateNotAvailable);
-  window.electronAPI.onDownloadProgress(handleDownloadProgress);
-  window.electronAPI.onUpdateDownloaded(handleUpdateDownloaded);
-})
+  appVersion.value = await bridge.getAppVersion();
+  disposers.push(
+    bridge.onUpdateAvailable(handleUpdateAvailable),
+    bridge.onUpdateNotAvailable(handleUpdateNotAvailable),
+    bridge.onDownloadProgress(handleDownloadProgress),
+    bridge.onUpdateDownloaded(handleUpdateDownloaded)
+  );
+});
+
+onBeforeUnmount(() => {
+  // 注销事件监听，避免页面反复进出后同一事件触发多次回调
+  disposers.splice(0).forEach((dispose) => dispose());
+});
 </script>
 
 <style lang="scss" scoped>

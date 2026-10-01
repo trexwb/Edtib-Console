@@ -163,16 +163,16 @@ Tauri 支持把任意可执行文件作为「sidecar」随包分发，理论上�
 | --- | --- | --- |
 | `electron/src/main.ts` | `src-tauri/src/lib.rs`（`run()` + `setup`） | 应用装配：窗口、插件、状态托管、数据库初始化、调度启动 |
 | `electron/src/index.ts` | `src-tauri/src/main.rs` | 进程入口（Windows release 下隐藏控制台窗口） |
-| `electron/src/preload.ts` | —（删除） | Tauri 无 preload/contextBridge，前端直接用 `invoke()` |
+| `electron/src/preload.ts` | `src/bridge/index.ts`（`setupBridge()`） | Tauri 无 preload/contextBridge；渲染层自建同名 `window.electronAPI` 门面，内部转 `invoke()` |
 | `electron/src/route/index.ts` | `src-tauri/src/commands/mod.rs` + `commands/*.rs` | Express 路由 → 按业务域拆分的命令模块 |
-| `electron/src/route/middleware.ts` | `src-tauri/src/error.rs` + capabilities | 中间件（鉴权/错误包装）→ 统一 `AppError` + 权限能力集 |
-| `electron/src/controller/request.ts` | `src-tauri/src/commands/*.rs` | 请求处理入口 → 命令实现 |
+| `electron/src/route/middleware.ts` | `src-tauri/src/proxy/middleware.rs` + `error.rs` + capabilities | 本地链路鉴权（`App-Id` / `App-Nonce` / `App-Secret`，错误码逐字对齐）→ Rust 侧校验 + 统一 `AppError` + 权限能力集 |
+| `electron/src/controller/request.ts` | `src-tauri/src/proxy/request.rs` + `commands/proxy.rs` | 重加密 → `x-sign` → reqwest 转发 → 响应解密 → 信封 |
 | `electron/src/config/db.ts`、`knexfile.ts` | `src-tauri/src/db/mod.rs` | 数据库连接与迁移执行器 |
-| `electron/src/config/index.ts` | `src-tauri/src/state.rs` + `commands/app.rs` | 运行时配置 → 托管状态 + `app_info` 自检命令 |
-| `electron/src/config/cryptTool.ts` | 待迁移（计划 `src-tauri/src/crypto.rs`） | 加解密工具；骨架未落地 |
-| `electron/src/model/*.ts` | `src-tauri/src/db/` + `commands/*.rs` | 数据模型 → SQL 表定义 + 命令出入参结构体 |
-| `electron/src/migrations/*.ts`（18 个 Knex 迁移） | `src-tauri/migrations/*.sql`（当前仅 `0001_init.sql` 占位） | 迁移脚本翻译为纯 SQL |
-| `electron/src/seeds/*.ts` | `src-tauri/migrations/` 内的初始化数据（待迁移） | 种子数据 |
+| `electron/src/config/index.ts` | `src-tauri/src/config.rs` + `state.rs` + `commands/app.rs` | 运行时配置与凭证：`cryptSecrets()` → `EDTIB_*` 环境变量 / `<AppData>/console.env`（源码零密钥）；托管状态 + `app_info` 自检命令 |
+| `electron/src/config/cryptTool.ts` | `src-tauri/src/crypt.rs` | `md5` / `sha256` / `aes-256-cbc` + hex，解密自适应 `iv:cipher` 与固定 IV 两种历史格式；`defaultKey` 改由 `EDTIB_FIELD_CRYPT_*` 提供 |
+| `electron/src/model/*.ts` | `src-tauri/src/models/` + `db/` + `commands/*.rs` | 数据模型 → 12 表白名单注册表 + 查询执行器 + 命令出入参 |
+| `electron/src/migrations/*.ts`（18 个 Knex 迁移） | `src-tauri/migrations/*.sql`（`0001_init.sql` ~ `0019_servers.sql`） | 迁移脚本翻译为纯 SQL，逐表对应 |
+| `electron/src/seeds/*.ts` | `src-tauri/src/db/seed.rs` | 种子数据随 `Database::open` 执行，幂等判据为「业务表空」 |
 | `electron/src/schedule/index.ts` + `schedule/components/*` | `src-tauri/src/schedule/mod.rs` | node-schedule → tokio 调度 + 任务注册表 |
 | `electron/src/cast/*.ts` | serde 序列化 + Rust `From/Into` | 类型转换 |
 | `electron/src/helper/*` | `src-tauri/src/`（计划 `helper.rs`，待迁移） | 工具函数 |
@@ -224,13 +224,14 @@ Tauri（新）
 
 ## 5. 迁移待办（后续阶段）
 
-- [ ] 把 `client/console/web` 的业务代码迁入仓库根 `src/`（Vue3 + Vite 工程结构、路由、状态管理、组件库）。
-- [ ] 把 18 个 Knex 迁移翻译为 `src-tauri/migrations/*.sql`，并补齐种子数据。
-- [ ] 按业务域补齐 `commands/`（账户、客户、产品、标准、公式、序列号等），替换原 Express 路由。
-- [ ] 迁移 `cryptTool` 加解密逻辑到 Rust，并核对与后端的协议一致性。
-- [ ] 落地定时任务真实逻辑（心跳、证书下载、更新检查）。
-- [ ] 应用内更新 UI（`@tauri-apps/plugin-updater` 的 `check()` / `downloadAndInstall()`）。
+- [x] 把 `client/console/web` 的业务代码迁入仓库根 `src/`（Vue3 + Vite 工程结构、路由、状态管理、组件库）。
+- [x] 把 18 个 Knex 迁移翻译为 `src-tauri/migrations/*.sql`，并补齐种子数据（`db/seed.rs`）。
+- [x] 按业务域补齐 `commands/`（db / fs / system / app / schedule / proxy 共 25 个命令）。
+- [x] 迁移 `cryptTool` 加解密逻辑到 Rust（`crypt.rs`），并核对与后端的协议一致性。
+- [x] 落地定时任务真实逻辑（心跳、证书下载、更新检查）。
+- [x] 应用内更新 UI（`views/settings/update.vue` 经 `src/bridge` 调 `check_update` / `confirm_update` / `restart_app`）。
 - [ ] CI 首次发版演练：配置 Secrets → 打 tag → 校验 Release 资产与 `latest.json`。
+- [ ] 前端密钥治理：`VITE_APP_*` 仍随构建产物分发，待 `offline-and-proxy-architecture.md` 6.1 D2/D4 拍板后收敛到 Rust 侧。
 
 ---
 

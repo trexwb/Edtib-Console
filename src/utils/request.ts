@@ -84,18 +84,16 @@ const decrypt = (encryptedText: string, key: string): any => {
   }
 }
 
-const generateRandomString = (length: number) => {
+// C-G3: 生成防重放 nonce（32 位字母数字，供 App-Nonce 头与签名计算使用）
+// 必须使用密码学随机源：Math.random 可预测，会让防重放 nonce 失去意义
+const NONCE_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+const generateNonce = (): string => {
+  const bytes = new Uint8Array(32)
+  crypto.getRandomValues(bytes)
   let result = ''
-  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
-  const charactersLength = characters.length
-  for (let i = 0; i < length; i++) {
-    result += characters.charAt(Math.floor(Math.random() * charactersLength))
-  }
+  for (let i = 0; i < bytes.length; i++) result += NONCE_ALPHABET.charAt(bytes[i] % NONCE_ALPHABET.length)
   return result
 }
-
-// C-G3: 生成防重放 nonce（32 位字母数字，供 App-Nonce 头与签名计算使用）
-const generateNonce = (): string => generateRandomString(32)
 
 let loadingInstance: any
 
@@ -146,9 +144,13 @@ const requestConf = (config: any): any => {
     // config.headers['Auth-Token'] = `${token}`
   }
 
-  if (import.meta.env.VITE_REQUEST_ENCRYPT === 'true' && config.data) {
+  // 网络错误重试会再次进入拦截器：以首次的原始 body 为准，避免对密文二次加密
+  if (config.plainData === undefined) config.plainData = config.data
+  const plainData = config.plainData
+
+  if (import.meta.env.VITE_REQUEST_ENCRYPT === 'true' && plainData) {
     config.data = {
-      encryptedData: encrypt(config.data, import.meta.env.VITE_APP_SECRET),
+      encryptedData: encrypt(plainData, import.meta.env.VITE_APP_SECRET),
     }
   }
 
@@ -268,9 +270,9 @@ instance.interceptors.response.use(
     // 网络错误时重试一次（仅在无响应时，即真正的网络问题）
     if (response === undefined && config.retryCount < 1) {
       config.retryCount++
-      // 深拷贝 data 避免请求拦截器副作用影响重试
-      if (config.data) config.data = JSON.parse(JSON.stringify(config.data))
-      return instance(requestConf(config))
+      // 交由请求拦截器重新签名（App-Secret 时间戳/nonce 需重算）；
+      // 拦截器以 config.plainData 还原原始 body，不会二次加密或重复序列化
+      return instance(config)
     }
     if (response === undefined) {
       if (loadingInstance) loadingInstance.close()

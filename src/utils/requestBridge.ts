@@ -5,14 +5,15 @@
  * @Date: 2026-04-15 23:00
  *
  * 迁移说明（Tauri v2）：
- * - 本文件与老项目 `client/console/web/src/utils/requestBridge.ts` 完全等价（老 web 构建同样没有
- *   `window.electronAPI`，因此本地 IPC 分支在浏览器宿主下始终走 fallback）；
+ * - `window.electronAPI` 不再由 Electron preload 注入，而由 `src/bridge`（`setupBridge()`，
+ *   在 `src/main.ts` 启动时调用）在 Tauri 宿主下挂载，方法签名与老 preload 完全一致；
+ *   通道名 -> Tauri 命令名对照见 `src/bridge/channels.ts`，Rust 侧实现见 `src-tauri/src/commands/*`；
+ * - 因此 `ipc:` 分支在桌面端可达：本地 SQLite / 本地文件读写经 `db_*` / `fs_*` / `system_get_info`
+ *   命令完成；命令未注册、表名不在白名单、本地表为空或调用失败时，一律降级到 HTTP（在线行为不变）；
  * - `http` 分支调用的 `/@/utils/request` 在 Tauri 宿主下已切换为 IPC 转发（命令 `proxy_request`，
- *   见 `src/utils/tauriAdapter.ts`），即：老「渲染层 → 本地 Express 服务」的链路已由该命令等价替换，
- *   本文件无需改动调用口径；
- * - 本地 IPC 能力（`electronAPI.db/fs/system`）在新项目中无对应命令（新架构下 SQLite 不作为渲染层
- *   缓存、文件读写由 Rust 侧直接完成），因此 `ipc*` 分支在 Tauri 宿主下不可达，统一走 HTTP；
- *   差异决策记录见 `docs/migration-coverage.md`（未迁移项 N-*）与 `docs/offline-and-proxy-architecture.md`。
+ *   见 `src/utils/tauriAdapter.ts`）：老「渲染层 → 本地 Express 服务 → gateway」的链路由该命令等价替换；
+ * - 浏览器宿主（`npm run dev` 直开页面）没有 Tauri 运行时，`isElectron()` 为 false，全部走 HTTP；
+ *   差异决策记录见 `docs/migration-coverage.md` 与 `docs/offline-and-proxy-architecture.md`。
  */
 
 import request from '/@/utils/request'

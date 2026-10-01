@@ -580,6 +580,12 @@ flowchart LR
 | 环境变量 | `console/.env.development` 含明文 `VITE_APP_ID` / `VITE_APP_SECRET` / `VITE_APP_IV` / `VITE_APP_BASE_URL` / `VITE_REQUEST_ENCRYPT` / `VITE_RETURN_ENCRYPT` / `VITE_ASSETS_BASE_URL`（与老项目 web 开发环境同值）；`.env.example` 仅含 updater 签名项 → 需清理（C2） |
 | 依赖 | `package.json` 已含 `@tauri-apps/api` 与 opener/process/updater 插件；Rust 侧需新增 `reqwest`、`keyring`、`ulid`、加解密相关 crate（实施期） |
 
+> **2026-10-01 现状校正**（上表为 2026-09-29 快照，此后已发生的进展）：
+> - 前端已全量迁入（`src/` 374 文件，含 `request.ts` / `requestBridge.ts` / `api/` 22 模块），并已新建 `src/bridge/`（`window.electronAPI` 注入），见 `migration-coverage.md` §2.4；
+> - `commands/{app,db,fs,schedule,system,proxy}.rs` 已实现并注册 25 个命令，`db` / `fs` / `system` / 更新面已不再是空壳；
+> - Rust 侧已引入 `reqwest` + `aes`/`cbc`/`sha2`/`md-5`/`getrandom`，**未引入** `keyring` 与 `ulid`：密钥当前走环境变量 / `<AppData>/console.env`（D-13），Keychain（2.3）与 outbox 幂等键（3.3）仍是待实施方案；
+> - `console/.env.development` 明文前端密钥问题仍在（`VITE_APP_*` 随构建产物分发，见 6.1 D2/D4 未拍板）；Rust 侧 `EDTIB_*` 已无硬编码兜底。
+
 ### 5.6 可复用与不可复用清单
 
 | 类别 | 内容 | 处置 |

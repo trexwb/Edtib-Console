@@ -256,15 +256,16 @@ mod tests {
         // 2026-09-29 为星期二、9 月
         assert!(matches("0 0 9 * * mon-fri", 9, 0, 0));
         assert!(!matches("0 0 9 * * sat,sun", 9, 0, 0));
-        assert!(matches("0 0,12 * sep * *", 12, 0, 0));
-        assert!(!matches("0 0,12 * oct * *", 12, 0, 0));
+        // 6 段口径：秒 分 时 日 月 周，月份名只能出现在第 5 段
+        assert!(matches("0 0,12 * * sep *", 12, 0, 0));
+        assert!(!matches("0 0,12 * * oct *", 12, 0, 0));
         assert!(matches("0 0 * * * 2", 12, 0, 0));
         assert!(matches("0 0 * * * tue", 12, 0, 0));
         assert!(!matches("0 0 * * * wed", 12, 0, 0));
-        // 0-5/2 → {0,2,4}
-        assert!(!matches("0 0-5/2 * * * *", 3, 0, 0));
-        assert!(matches("0 0-5/2 * * * *", 4, 0, 0));
-        assert!(!matches("0 0-5/2 * * * *", 5, 0, 0));
+        // 分钟 0-5/2 → {0,2,4}
+        assert!(!matches("0 0-5/2 * * * *", 0, 3, 0));
+        assert!(matches("0 0-5/2 * * * *", 0, 4, 0));
+        assert!(!matches("0 0-5/2 * * * *", 0, 5, 0));
     }
 
     #[test]
@@ -280,7 +281,8 @@ mod tests {
 
     #[test]
     fn rejects_invalid_expressions() {
-        assert!(CronSpec::parse("0 */3 * * *").is_err());
+        // 4 段（不足 5 段）才非法；「0 */3 * * *」本身是合法的 5 段表达式
+        assert!(CronSpec::parse("0 */3 * *").is_err());
         assert!(CronSpec::parse("0 0 * * * * *").is_err());
         assert!(CronSpec::parse("* * * * * */0").is_err());
         assert!(CronSpec::parse("0 0 32 * * *").is_err());

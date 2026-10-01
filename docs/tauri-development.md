@@ -8,10 +8,10 @@
 
 | 组件 | 本机已验证版本 | 说明 |
 | --- | --- | --- |
-| Node.js | v24.21.0 | 前端构建与 Tauri CLI 运行环境 |
-| npm | 11.19.0 | 包管理 |
-| Rust（rustc / cargo） | 1.97.1 | `rust-version` 声明为 1.90 |
-| Tauri CLI | 2.12.0 | 项目内 devDependency（`@tauri-apps/cli`），**未做全局安装**，一律用 `npm run tauri` / `npx tauri` 调用 |
+| Node.js | v24.19.0 | 前端构建与 Tauri CLI 运行环境 |
+| npm | 11.17.0 | 包管理 |
+| Rust（rustc / cargo） | 1.98.0 | `rust-version` 声明为 1.90 |
+| Tauri CLI | 2.12.1 | 项目内 devDependency（`@tauri-apps/cli`），**未做全局安装**，一律用 `npm run tauri` / `npx tauri` 调用 |
 | Xcode Command Line Tools | 已安装（cc/clang 可用） | macOS 构建 Rust 依赖所需 |
 
 > 若终端提示 `node` / `cargo` 不存在，通常是版本管理器未加载 PATH：
@@ -25,12 +25,20 @@
 npm install                # 安装前端依赖（Vue / Vite / TS）与 Tauri CLI
 npm run dev                # 仅启动前端 dev server（http://localhost:1430）
 npm run tauri dev          # 启动完整桌面应用（前端 + Rust 热重载）
-npm run build              # 前端类型检查 + 生产构建（输出 dist/）
-npm run tauri build        # 打包安装包（产物在 src-tauri/target/release/bundle/）
-npx tauri icon <源图.png>   # 由 1024×1024 源图重新生成全套图标
+npm run typecheck            # 仅类型检查（vue-tsc --noEmit）
+npm run build                # 前端生产构建（vite build，输出 dist/；不含类型检查）
+npm run build:check          # 类型检查 + 生产构建
+npm run tauri build          # 打包安装包（产物在 src-tauri/target/release/bundle/）
+npx tauri icon <源图.png>     # 由 1024×1024 源图重新生成全套图标
 npx tauri signer generate -w ~/.tauri/edtib-console.key   # 生成 Tauri minisign 更新签名密钥对
 cd src-tauri && cargo check   # 快速校验 Rust 侧与 tauri.conf.json 配置
+cd src-tauri && cargo test    # Rust 单测（当前 31 项）
 ```
+
+> ⚠️ `npm run build` 依赖商业模板（`Admin` / `vite-plugin-unplugin`）的授权码：
+> `VITE_APP_GITHUB_USER_NAME` / `VITE_APP_SECRET_KEY` 缺失时，插件链仍会完整注册（迁移期已修复
+> 「缺授权码直接 `return undefined` 导致构建崩溃」的问题），但授权校验会中断产物生成且退出码仍为 0，
+> 因此**必须以 `dist/` 是否产出为准**，不能只看退出码。发布前在 `.env.local` 补入购买的 key。
 
 前端 dev 端口：**1430**，HMR **1431**（区别于 books 项目的 1420/1421）。
 
@@ -47,6 +55,7 @@ console/
 ├── tsconfig.node.json
 ├── dist/                        # 前端构建输出（`frontendDist: ../dist` 指向此处）
 ├── src/                         # 前端源码（Vue3 + Vite + TS）
+│   └── bridge/                  # window.electronAPI 桥接（channels / types / index）
 └── src-tauri/                   # Rust 侧
     ├── Cargo.toml
     ├── build.rs
@@ -55,16 +64,37 @@ console/
     ├── tauri.windows.conf.json  # Windows 覆盖：nsis
     ├── capabilities/default.json# 权限能力集（含 updater:default）
     ├── icons/                   # 应用图标（由老项目 icon.png 生成）
-    ├── migrations/              # SQL 迁移（0001_init.sql 为占位）
+    ├── migrations/              # SQL 迁移（0001_init.sql ~ 0019_servers.sql）
     └── src/
         ├── main.rs              # 进程入口
-        ├── lib.rs               # 插件注册、状态托管、命令挂载
+        ├── lib.rs               # 插件注册、状态托管、25 个命令挂载
+        ├── config.rs            # 凭证与密钥：环境变量 / console.env（源码零密钥）
+        ├── crypt.rs             # md5 / sha256 / aes-256-cbc
+        ├── paths.rs             # AppData / 文档目录解析与越权防护
+        ├── update.rs            # tauri-plugin-updater 下载-安装两段式
         ├── state.rs             # 全局托管状态（AppState）
         ├── error.rs             # AppError / AppResult
-        ├── commands/            # 按业务域拆分的 Tauri 命令
-        ├── db/                  # rusqlite 连接 + 迁移执行器
+        ├── response.rs          # Envelope 统一信封
+        ├── commands/            # 按业务域拆分的 Tauri 命令（app / db / fs / system / schedule / proxy）
+        ├── models/              # 12 表白名单注册表 + cast
+        ├── db/                  # rusqlite 连接 + 查询执行器 + 迁移 + 种子
+        ├── proxy/               # 本地链路鉴权 + 重加密 + 网关转发
         └── schedule/            # 定时任务注册与调度
 ```
+
+---
+
+## 3.1 运行时密钥与配置注入
+
+Rust 侧**源码不含任何密钥**（AGENTS §6.3）。三类注入源，优先级从高到低：
+
+1. 进程环境变量（`tauri dev` 下可直接 `EDTIB_APP_SECRET=… npm run tauri dev`）；
+2. 密钥文件：`EDTIB_ENV_FILE` 指定的路径，缺省为 `<AppData>/console.env`（`KEY=VALUE`，支持 `#` 注释与成对引号）；
+3. 无兜底默认值——缺失即**失败关闭**（启动打 `ERROR` 日志，所有 `proxy_request` 直接拒绝）。
+
+> 打包态 macOS 从 Finder 启动不会继承 shell 环境变量，因此发布机必须部署 `console.env`；
+> 变量清单与含义见仓库根 `.env.example`（`VITE_*` 为前端构建期，`EDTIB_*` 为 Rust 运行期）。
+> `VITE_APP_ID` / `VITE_APP_SECRET` 必须与 `EDTIB_APP_ID` / `EDTIB_APP_SECRET` 同值，否则本地链路验签返回 `4016000305`。
 
 ---
 
@@ -142,8 +172,11 @@ git push origin v1.0.0
 
 | 检查项 | 命令 | 期望 |
 | --- | --- | --- |
-| Rust 侧编译与配置校验 | `cd src-tauri && cargo check` | `Finished`，无 error |
-| 前端类型检查与构建 | `npm run build` | 输出 `dist/index.html` 与 `assets/*` |
+| Rust 侧编译与配置校验 | `cd src-tauri && cargo check --all-targets` | `Finished`，无 error（存量 warning 为未引用的兼容项） |
+| Rust 单测 | `cd src-tauri && cargo test` | `31 passed; 0 failed` |
+| 前端类型检查 | `npm run typecheck` | 无输出，exit 0 |
+| 前端生产构建 | `npm run build:check` | 输出 `dist/index.html` 与 `assets/*`（需 `.env.local` 授权码，见 §2 注意事项） |
+| 密钥注入自检 | 启动后看日志 | 无「本地链路密钥未配置或长度非法」`ERROR`；出现该日志说明 `EDTIB_APP_*` / `console.env` 缺失，此时所有转发请求被拒绝 |
 | Tauri 环境信息 | `npm run tauri -- info` | 正确识别 Rust / Node / CLI 版本 |
-| 开发运行 | `npm run tauri dev` | 弹出「EDTIB控制中台」窗口（1430 端口 dev server） |
+| 开发运行 | `npm run tauri dev` | 弹出「EDTIB控制中台」窗口（1430 端口 dev server）；设置 → 检查更新页不再报 `electronAPI` 未定义 |
 

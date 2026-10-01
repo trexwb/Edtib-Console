@@ -164,7 +164,7 @@ const normalizeBody = (config: AxiosRequestConfig): unknown => {
     if (contentType.includes('application/x-www-form-urlencoded')) {
       try {
         // 等价 `express.urlencoded` 解析后再由 axios 以 JSON 转发
-        return stringifyParsed(data)
+        return parseUrlEncoded(data)
       } catch {
         return data
       }

@@ -13,6 +13,6 @@ export const netConfig: {
   successCode: [200, 0, '200', '0'],
   // 数据状态的字段名称
   statusName: 'code',
-  // 状态信息的字段名称
-  messageName: 'msg',
+  // 状态信息的字段名称（网关与本地代理信封均为 `{ code, message, timestamp }`）
+  messageName: 'message',
 }

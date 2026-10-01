@@ -16,8 +16,9 @@
 export type HostKind = 'electron' | 'tauri' | 'browser'
 
 /**
- * 是否运行在老 electron 宿主中（`preload.ts` 注入的 `window.electronAPI`）。
- * 仅用于兼容老 `requestBridge.ts` 的本地能力探测，新项目不再存在该注入。
+ * 是否存在 `window.electronAPI`（老 electron 宿主的探测口径，`requestBridge` 沿用该判断选择
+ * IPC 或 HTTP）。新项目由 `src/bridge` 的 `setupBridge()` 在 Tauri 宿主下挂载同名对象，
+ * 因此桌面端为 true、浏览器宿主为 false；命名保留是为了与老 `requestBridge.ts` 完全等价。
  */
 export const isElectron = (): boolean => {
   return typeof window !== 'undefined' && (window as any).electronAPI !== undefined

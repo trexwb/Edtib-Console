@@ -118,8 +118,8 @@ const loginFormData = getStorage('loginFormData') || {}
 const form = ref<any>(
   Object.assign(
     {
-      account: loginFormData['username'] || (import.meta.env.VITE_USER_NODE_ENV === 'development' ? 'root' : ''),
-      password: import.meta.env.VITE_USER_NODE_ENV === 'development' ? '6Z9SV3QBX8kIndeY' : '',
+      username: loginFormData['username'] || '',
+      password: '',
       verificationCode: '',
     },
     loginFormData
@@ -174,7 +174,7 @@ const handleLogin = async () => {
             handleUnLock()
           }).catch((error: any) => {
             // $baseMessage(error.toString(), 'error', 'hey')
-            form.value.password = import.meta.env.VITE_USER_NODE_ENV === 'development' ? '6Z9SV3QBX8kIndeY' : ''
+            form.value.password = ''
             loading.value = false
           })
         } finally {

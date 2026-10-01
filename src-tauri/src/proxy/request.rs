@@ -63,17 +63,17 @@ pub fn prepare(
     };
 
     // 3) 目标地址：等价 `new URL(secretRow.app_url || production.app_url)`
-    let app_url = js_or(row.get("app_url"), config::PRODUCTION.app_url);
+    let app_url = js_or(row.get("app_url"), config::production().app_url.as_str());
     let (protocol, host) = match split_origin(&app_url) {
         Some(parts) => parts,
         None => return Err(ctx.handle_error(500, Some(JS_INVALID_URL_ERROR.to_string()))),
     };
     let target_url = format!("{protocol}//{host}{}", request.path);
 
-    // 4) 网关凭证：secrets 行优先，缺省回退 `cryptSecrets().production`
-    let app_id = js_or(row.get("app_id"), config::PRODUCTION.app_id);
-    let app_secret = js_or(row.get("app_secret"), config::PRODUCTION.app_secret);
-    let app_iv = js_or(row.get("app_iv"), config::PRODUCTION.app_iv);
+    // 4) 网关凭证：secrets 行优先，缺省回退环境变量注入的生产配置
+    let app_id = js_or(row.get("app_id"), config::production().app_id.as_str());
+    let app_secret = js_or(row.get("app_secret"), config::production().app_secret.as_str());
+    let app_iv = js_or(row.get("app_iv"), config::production().app_iv.as_str());
 
     // 5) 请求头（保持 requestMake 的赋值顺序与算法）
     //    注：`host` / `content-length` 由 reqwest 依据实际 URL 与 body 生成，这里不手工设置
@@ -100,7 +100,12 @@ pub fn prepare(
     headers.insert("origin".to_string(), format!("{protocol}//{host}"));
 
     // 6) body 重加密：老加密体（本地密钥）→ 目标密钥加密体（iv 前缀约定）
-    let body = reencrypt_body(&request.body, &app_secret);
+    let body = reencrypt_body(
+        &request.body,
+        config::app_secret(),
+        config::app_iv(),
+        &app_secret,
+    );
 
     // 7) x-sign：等价 gateway 侧 `VerifySignature`（sortObjectDeep + sha256 + md5）
     let mut sign_fields = Map::new();
@@ -142,20 +147,39 @@ pub fn prepare(
 
 /// 等价 `requestMake` 的 axios 转发（`validateStatus: () => true`，任何状态都当成功处理）。
 pub async fn forward(prepared: &PreparedRequest) -> AppResult<(u16, HashMap<String, String>, Value)> {
-    let client = client()?;
-    let mut builder = client.request(prepared.method.clone(), &prepared.url);
+    use reqwest::header::{HeaderName, HeaderValue, CONTENT_TYPE};
 
+    let client = client()?;
+
+    // 头去重后再上送：前端声明的 content-type 可能与最终体格式不一致（如 urlencoded 体重加密后为 JSON），
+    // 若逐个 append 会出现两个 content-type，网关 body 解析会因此错位。
+    let mut header_map = reqwest::header::HeaderMap::new();
     for (name, value) in &prepared.headers {
-        builder = builder.header(name.as_str(), value.as_str());
+        let header_name = HeaderName::from_bytes(name.as_bytes());
+        let header_value = HeaderValue::from_str(value);
+        match (header_name, header_value) {
+            (Ok(header_name), Ok(header_value)) => {
+                header_map.insert(header_name, header_value);
+            }
+            _ => log::warn!("忽略非法请求头: {name}"),
+        }
     }
-    builder = builder.timeout(prepared.timeout);
-    builder = match &prepared.body {
-        Some(Value::String(text)) => builder.body(text.clone()),
-        Some(value) => builder.json(value),
-        None => builder.body(String::new()),
+
+    let body = match &prepared.body {
+        // 原样上送的字符串体（非 JSON / urlencoded 场景）：沿用前端声明的 content-type
+        Some(Value::String(text)) => text.clone().into_bytes(),
+        Some(value) => {
+            header_map.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
+            serde_json::to_vec(value).map_err(|err| AppError::other(err.to_string()))?
+        }
+        None => Vec::new(),
     };
 
-    let response = builder
+    let response = client
+        .request(prepared.method.clone(), &prepared.url)
+        .headers(header_map)
+        .timeout(prepared.timeout)
+        .body(body)
         .send()
         .await
         .map_err(|err| AppError::other(err.to_string()))?;
@@ -248,9 +272,14 @@ pub fn finish(
 }
 
 /// 等价 `requestMake` 中的 body 重加密：
-/// 老加密体用本地密钥（`serverConfig.appSecret/appIv`）解密，再用目标密钥加密，
+/// 老加密体用本地密钥（`config::app_secret()/app_iv()`）解密，再用目标密钥加密，
 /// 最终形如 `{ encryptedData: iv(hex):密文(hex) }`；解密失败时与老实现一致地写入 `false`。
-fn reencrypt_body(body: &Option<Value>, target_secret: &str) -> Option<Value> {
+fn reencrypt_body(
+    body: &Option<Value>,
+    local_secret: &str,
+    local_iv: &str,
+    target_secret: &str,
+) -> Option<Value> {
     let map = match body {
         Some(Value::Object(map)) => map,
         _ => return body.clone(),
@@ -261,8 +290,7 @@ fn reencrypt_body(body: &Option<Value>, target_secret: &str) -> Option<Value> {
         _ => return body.clone(),
     };
 
-    let plain = crypt::decrypt_adaptive(cipher, config::APP_SECRET, config::APP_IV)
-        .unwrap_or(Value::Bool(false));
+    let plain = crypt::decrypt_adaptive(cipher, local_secret, local_iv).unwrap_or(Value::Bool(false));
     let encrypted = crypt::encrypt_iv_prefixed(&plain, target_secret)
         .map(Value::String)
         .unwrap_or(Value::Bool(false));
@@ -429,27 +457,69 @@ mod tests {
         assert_eq!(split_origin("not-a-url"), None);
     }
 
+    /// 测试专用合成密钥（真实凭证只来自环境变量）。
+    const LOCAL_SECRET: &str = "0123456789abcdef0123456789abcdef";
+    const LOCAL_IV: &str = "fedcba9876543210";
+    const TARGET_SECRET: &str = "abcdef9876543210fedcba9876543210";
+
     #[test]
     fn reencrypt_body_keeps_plain_body() {
         let body = Some(json!({"page": 1}));
-        assert_eq!(reencrypt_body(&body, "xOi99fjEMa7kHbKyRfCfdfRJ72kiKKJ8"), body);
+        assert_eq!(
+            reencrypt_body(&body, LOCAL_SECRET, LOCAL_IV, TARGET_SECRET),
+            body
+        );
     }
 
+    /// 前端 → 本地链路为「随机 IV + iv:密文」单层加密（见 `src/utils/request.ts` 的 `encrypt`）。
     #[test]
     fn reencrypt_body_switches_key() {
-        let target = "wjbeqd3tCzJWKktRbMreihIxjl9UJzCU";
         let plain = json!({"id": 7});
-        // web 前端约定：随机 IV（本地 → 网关链路）
-        let inner = crypt::encrypt_iv_prefixed(&plain, config::APP_SECRET).expect("加密成功");
-        // 老 electron 约定：固定 IV（前端 → 本地链路）
-        let outer = crypt::encrypt(&Value::String(inner), config::APP_SECRET, config::APP_IV);
-        let body = Some(json!({ "encryptedData": outer }));
+        let cipher = crypt::encrypt_iv_prefixed(&plain, LOCAL_SECRET).expect("前端侧加密成功");
+        let body = Some(json!({ "encryptedData": cipher }));
 
-        let reencrypted = reencrypt_body(&body, target).expect("有 body");
-        let cipher = reencrypted.get("encryptedData").and_then(Value::as_str).expect("密文");
+        let reencrypted = reencrypt_body(&body, LOCAL_SECRET, LOCAL_IV, TARGET_SECRET).expect("有 body");
+        let forwarded = reencrypted
+            .get("encryptedData")
+            .and_then(Value::as_str)
+            .expect("密文");
+        assert_ne!(forwarded, cipher, "必须用网关密钥重新加密");
         assert_eq!(
-            crypt::decrypt_adaptive(cipher, target, config::APP_IV),
+            crypt::decrypt_adaptive(forwarded, TARGET_SECRET, LOCAL_IV),
             Some(plain)
+        );
+    }
+
+    /// 老 electron 约定（固定 IV、无 iv 前缀）仍需可解，保证存量前端不被切断。
+    #[test]
+    fn reencrypt_body_accepts_legacy_fixed_iv() {
+        let plain = json!({"id": 8});
+        let cipher = crypt::encrypt(&plain, LOCAL_SECRET, LOCAL_IV);
+        let body = Some(json!({ "encryptedData": cipher }));
+
+        let reencrypted = reencrypt_body(&body, LOCAL_SECRET, LOCAL_IV, TARGET_SECRET).expect("有 body");
+        let forwarded = reencrypted
+            .get("encryptedData")
+            .and_then(Value::as_str)
+            .expect("密文");
+        assert_eq!(
+            crypt::decrypt_adaptive(forwarded, TARGET_SECRET, LOCAL_IV),
+            Some(plain)
+        );
+    }
+
+    /// 解不开时与老实现一致：以 `false` 作为明文重新加密上送，而不是把原始密文透传给网关。
+    #[test]
+    fn reencrypt_body_falls_back_to_false() {
+        let body = Some(json!({ "encryptedData": "not-a-ciphertext" }));
+        let reencrypted = reencrypt_body(&body, LOCAL_SECRET, LOCAL_IV, TARGET_SECRET).expect("有 body");
+        let forwarded = reencrypted
+            .get("encryptedData")
+            .and_then(Value::as_str)
+            .expect("密文");
+        assert_eq!(
+            crypt::decrypt_adaptive(forwarded, TARGET_SECRET, LOCAL_IV),
+            Some(Value::Bool(false))
         );
     }
 }

@@ -72,7 +72,7 @@ const randomBackground = () => {
 }
 
 const validatePass = (rule: any, value: string, callback: any) => {
-  if (value === '' || value !== '6Z9SV3QBX8kIndeY') {
+  if (value === '') {
     callback(new Error('请输入正确的密码'))
   } else {
     callback()
@@ -85,8 +85,8 @@ const loading = ref<boolean>(false)
 
 const formRef = ref()
 const form = ref({
-  username: loginFormData['username'] || (import.meta.env.VITE_USER_NODE_ENV === 'development' ? 'trexwb@163.com' : ''),
-  password: import.meta.env.VITE_USER_NODE_ENV === 'development' ? '6Z9SV3QBX8kIndeY' : '',
+  username: loginFormData['username'] || '',
+  password: '',
 })
 const rules = {
   // password: [{ validator: validatePass, trigger: 'blur' }],
@@ -109,7 +109,7 @@ const handleUnLock = () => {
           loading.value = false
         })
       } finally {
-        form.value.password = import.meta.env.VITE_USER_NODE_ENV === 'development' ? '6Z9SV3QBX8kIndeY' : ''
+        form.value.password = ''
         loading.value = false
       }
     }
