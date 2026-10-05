@@ -95,7 +95,11 @@ const generateNonce = (): string => {
   return result
 }
 
-let loadingInstance: any
+// P1-1 修复：改为实例集合——debounce 名单内请求重试时拦截器重入会再建实例，
+// 单一引用被覆盖导致首个实例永不 close（永久 loading）；统一在响应后全部关闭
+const loadingInstances: any[] = []
+// P1-3 修复：401/402 并发防抖标志，避免多个请求同时 401 时重复 resetAll + 跳转
+let isResetting = false
 
 // 操作正常Code数组
 const codeVerificationArray = isArray(successCode) ? [...successCode] : [...[successCode]]
@@ -156,7 +160,7 @@ const requestConf = (config: any): any => {
 
   if (config.data && config.headers['Content-Type'] === 'application/x-www-form-urlencoded;charset=UTF-8')
     config.data = stringify(config.data)
-  if (debounce.some((item: string) => config.url.includes(item))) loadingInstance = gp.$baseLoading()
+  if (debounce.some((item: string) => config.url.includes(item))) loadingInstances.push(gp.$baseLoading())
 
   return config
 }
@@ -185,7 +189,7 @@ const handleData = async ({
   const { resetAll, setToken } = useUserStore()
   if (headers['auth-token']) setToken(headers['auth-token'])
   if (import.meta.env.VITE_USER_NODE_ENV === 'development') console.log('headers:', { ...headers })
-  if (loadingInstance) loadingInstance.close()
+  while (loadingInstances.length) loadingInstances.pop()?.close()
   // 若data.code存在，覆盖默认code
   let statusCode = data && data[statusName] ? data[statusName] : status
   let code = data && data[statusName] ? Number((data[statusName] || 200).toString().substring(0, 3)) : status
@@ -275,7 +279,7 @@ instance.interceptors.response.use(
       return instance(config)
     }
     if (response === undefined) {
-      if (loadingInstance) loadingInstance.close()
+      while (loadingInstances.length) loadingInstances.pop()?.close()
       gp.$baseMessage(
         translate('连接后台接口失败，可能由以下原因造成：后端不支持跨域CORS、接口地址不存在、请求超时等，请联系管理员排查后端接口问题'),
         'error',

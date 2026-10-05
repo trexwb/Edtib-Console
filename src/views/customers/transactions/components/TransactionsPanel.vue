@@ -247,19 +247,48 @@ const setSelectRows = (selection: any) => {
 }
 
 // 批量导出选中项（前端生成 xlsx）
+// P1-4 修复：导出取值与表格插槽渲染同源（ownerText/typeMap/maskCode/等级与积分拼接/formatDateTime），
+// 原实现直接取 row[derivedProp]，owner/levelChange/creditChange/serialCode 等派生列导出全空；
+// operation 列为操作按钮，不参与导出。
+const exportCellText = (row: any, prop: string): string => {
+  switch (prop) {
+    case 'id':
+      return row?.id ?? ''
+    case 'owner':
+      return ownerText(row)
+    case 'type':
+      return typeMap.value[row?.type]?.label || `${translate('类型')} ${row?.type ?? ''}`
+    case 'levelChange':
+      return row?.origLevel || row?.finalLevel ? `${row?.origLevel ?? '-'} → ${row?.finalLevel ?? '-'}` : ''
+    case 'timesExpireChange':
+      return `${formatDateTime(row?.origTimesExpire)} → ${formatDateTime(row?.finalTimesExpire)}`
+    case 'creditChange':
+      return `${row?.origCredit ?? '-'} → ${row?.finalCredit ?? '-'}`
+    case 'serialCode':
+      return maskCode(row?.serial?.code)
+    case 'serialBatch':
+      return row?.serial?.batch || '-'
+    case 'createdAt':
+      return formatDateTime(row?.createdAt)
+    case 'updatedAt':
+      return formatDateTime(row?.updatedAt)
+    default:
+      return row?.[prop] ?? ''
+  }
+}
 const handleBatchExport = () => {
   if (state.selectionRows.length === 0) {
     ElMessage({ message: translate('请选择需要导出的数据'), type: 'error' })
     return
   }
   const rowIds = state.selectionRows as number[]
-  const exportColumns = (finallyColumns.value || []).filter((item: any) => item.prop)
+  const exportColumns = (finallyColumns.value || []).filter((item: any) => item.prop && item.prop !== 'operation')
   const exportData = (rows.list || [])
     .filter((item: any) => rowIds.includes(item.id))
     .map((row: any) => {
       const item: Record<string, any> = {}
       exportColumns.forEach((column: any) => {
-        item[column.label] = row[column.prop] ?? ''
+        item[column.label] = exportCellText(row, column.prop)
       })
       return item
     })

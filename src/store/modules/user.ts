@@ -2,8 +2,10 @@
  * @description 登录、获取用户信息、退出登录、清除token逻辑，不建议修改
  */
 import { useAclStore } from './acl'
+import { useRoutesStore } from './routes'
 import { useSettingsStore } from './settings'
 import { useTabsStore } from './tabs'
+import { constantRoutes, resetRouter } from '/@/router'
 import { configEnum } from '/@/api/common'
 import { getUserInfo, login, logout } from '../../api/authorize'
 import { tokenName } from '/@/config'
@@ -141,6 +143,7 @@ export const useUserStore = defineStore('user', {
     async resetAll() {
       const aclStore = useAclStore()
       const tabsStore = useTabsStore()
+      const routesStore = useRoutesStore()
       await removeToken()
       this.setToken('')
       this.setUsername('游客')
@@ -149,6 +152,11 @@ export const useUserStore = defineStore('user', {
       await aclStore.setFull(false)
       await aclStore.setRole([])
       await tabsStore.delAllVisitedRoutes()
+      // P1-3 修复：401 自动登出（无 location.reload()）时同步清空动态路由并重置 Vue Router，
+      // 否则换账号登录后守卫因 routes.length > 0 直接放行，复用上一账号的菜单/路由
+      routesStore.routes = []
+      routesStore.allRoutes = []
+      await resetRouter(constantRoutes)
     },
   },
 })
