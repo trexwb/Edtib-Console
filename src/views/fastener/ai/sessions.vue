@@ -283,12 +283,18 @@ const handleStatus = (row: any = null, status = 0) => {
   )
     .then(async () => {
       state.loading = true
-      await fastenerAiSessionDisable({ ids, status })
+      try {
+        await fastenerAiSessionDisable({ ids, status })
+      } catch (err) {
+        // 错误已由请求层统一提示，此处不再重复弹窗
+        return
+      } finally {
+        state.loading = false
+      }
       ElMessage({
         message: status === 1 ? translate('启用成功') : translate('禁用成功'),
         type: 'success',
       })
-      state.loading = false
       fetchData()
     })
     .catch((err) => {

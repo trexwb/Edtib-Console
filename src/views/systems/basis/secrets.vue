@@ -85,13 +85,13 @@
           </template>
           <template v-if="item.prop === 'app_id'">
             <div style="text-align: left;">
-              {{ row.app_id.slice(0, 4) + "********" + row.app_id.slice(12) }}
+              {{ typeof row.app_id === 'string' && row.app_id ? row.app_id.slice(0, 4) + '********' + row.app_id.slice(12) : '-' }}
               <el-text class="mx-1" v-if="state.appId === row.app_id" type="danger">{{ translate('自用') }}</el-text>
             </div>
           </template>
           <template v-if="item.prop === 'permissions'">
             <div style="text-align: left;">
-              {{ `${row.permissions.slice(0, 5).join(",")}${row.permissions.length > 5 ? '...' : ''}` }}
+              {{ Array.isArray(row.permissions) ? `${row.permissions.slice(0, 5).join(',')}${row.permissions.length > 5 ? '...' : ''}` : '-' }}
             </div>
           </template>
           <template v-if="item.prop === 'status'">
@@ -280,6 +280,7 @@ const fetchData = async () => {
     rows.total = data?.total || 0
     state.loading = false
   } catch (error) {
+    state.loading = false
     console.error('Fetch data error:', error)
     // 可以加入错误处理逻辑，如显示错误信息
   }
@@ -323,14 +324,20 @@ const handleDelete = (row: any = {}) => {
         rowIds = [...state.selectionRows]
       }
       state.loading = true
-      await secretsDelete({
-        id: rowIds,
-      })
+      try {
+        await secretsDelete({
+          id: rowIds,
+        })
+      } catch (err) {
+        // 错误已由请求层统一提示，此处不再重复弹窗
+        return
+      } finally {
+        state.loading = false
+      }
       ElMessage({
         message: translate('删除成功'),
         type: 'success',
       })
-      state.loading = false
       fetchData()
     })
     .catch((err) => {
@@ -360,14 +367,20 @@ const handleEnable = (row: any = {}) => {
         rowIds = [...state.selectionRows]
       }
       state.loading = true
-      await secretsEnable({
-        id: rowIds,
-      })
+      try {
+        await secretsEnable({
+          id: rowIds,
+        })
+      } catch (err) {
+        // 错误已由请求层统一提示，此处不再重复弹窗
+        return
+      } finally {
+        state.loading = false
+      }
       ElMessage({
         message: translate('启用成功'),
         type: 'success',
       })
-      state.loading = false
       fetchData()
     })
     .catch((err) => {
@@ -397,14 +410,20 @@ const handleDisable = (row: any = {}) => {
         rowIds = [...state.selectionRows]
       }
       state.loading = true
-      await secretsDisable({
-        id: rowIds,
-      })
+      try {
+        await secretsDisable({
+          id: rowIds,
+        })
+      } catch (err) {
+        // 错误已由请求层统一提示，此处不再重复弹窗
+        return
+      } finally {
+        state.loading = false
+      }
       ElMessage({
         message: translate('禁用成功'),
         type: 'success',
       })
-      state.loading = false
       fetchData()
     })
     .catch((err) => {

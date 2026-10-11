@@ -390,9 +390,15 @@ const handleCancel = (row: any) => {
   )
     .then(async () => {
       state.loading = true
-      await fastenerCommerceSubscriptionCancel({ id: row.id })
+      try {
+        await fastenerCommerceSubscriptionCancel({ id: row.id })
+      } catch (err) {
+        // 错误已由请求层统一提示，此处不再重复弹窗
+        return
+      } finally {
+        state.loading = false
+      }
       ElMessage({ message: translate('取消成功'), type: 'success' })
-      state.loading = false
       fetchData()
     })
     .catch((err) => {

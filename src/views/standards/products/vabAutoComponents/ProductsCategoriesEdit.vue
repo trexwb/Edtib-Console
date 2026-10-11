@@ -268,9 +268,14 @@ const checkAllow = () => {
 const fetchData = async (id: any) => {
   if (state.loading) return
   state.loading = true
-  const { data } = await categoriesDetail({ id: id || 0 })
-  state.loading = false
-  return data
+  try {
+    const { data } = await categoriesDetail({ id: id || 0 })
+    return data
+  } catch {
+    // 错误已由请求层统一提示
+  } finally {
+    state.loading = false
+  }
 }
 
 const findParentIds = (jsonArr: any, targetId: any) => {
@@ -412,19 +417,24 @@ const save = () => {
   state.submit = true
 
   formRef.value.validate(async (valid: any) => {
-    if (valid) {
-      sanitizeLangContent()
-      editForm.value.parent_id = parentIds.value.at(-1)
-      const { msg }: any = await categoriesSave(editForm.value)
-      formRef.value.resetFields()
-      sourceForm.value = JSON.parse(JSON.stringify(state.fromData))
-      editForm.value = JSON.parse(JSON.stringify(state.fromData))
-      cleanLastFormData()
-      $baseMessage(msg, 'success', 'hey')
-      emit('fetch-data')
-      close()
+    try {
+      if (valid) {
+        sanitizeLangContent()
+        editForm.value.parent_id = parentIds.value.at(-1)
+        const { msg }: any = await categoriesSave(editForm.value)
+        formRef.value.resetFields()
+        sourceForm.value = JSON.parse(JSON.stringify(state.fromData))
+        editForm.value = JSON.parse(JSON.stringify(state.fromData))
+        cleanLastFormData()
+        $baseMessage(msg, 'success', 'hey')
+        emit('fetch-data')
+        close()
+      }
+    } catch {
+      // 错误已由请求层统一提示
+    } finally {
+      state.submit = false
     }
-    state.submit = false
   })
 }
 

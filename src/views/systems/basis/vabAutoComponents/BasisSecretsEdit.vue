@@ -152,9 +152,16 @@ const checkAllow = () => {
 const fetchData = async (id: any) => {
   if (state.loading) return
   state.loading = true
-  const { data } = await secretsDetail({ id: id || 0 })
-  state.loading = false
-  return data
+  try {
+    const { data } = await secretsDetail({ id: id || 0 })
+    return data
+  } catch (error) {
+    // 错误已由请求层统一提示
+    console.error('Fetch secret detail error:', error)
+    return undefined
+  } finally {
+    state.loading = false
+  }
 }
 
 /**
@@ -197,6 +204,11 @@ const showEdit = async (row: any) => {
     state.isCreate = false
     state.title = translate('编辑')
     const detailRow = await fetchData(row.id)
+    // 详情加载失败（请求层已提示）时不打开空表单，避免误编辑/误提交
+    if (!detailRow) {
+      loadingInstance.close()
+      return
+    }
     initializeForm(state.fromData, { ...row, ...detailRow })
   }
 }
@@ -261,14 +273,21 @@ const save = () => {
 
   formRef.value.validate(async (valid: any) => {
     if (valid) {
-      const { msg }: any = await secretsSave(editForm.value)
-      formRef.value.resetFields()
-      sourceForm.value = JSON.parse(JSON.stringify(state.fromData))
-      editForm.value = JSON.parse(JSON.stringify(state.fromData))
-      cleanLastFormData()
-      $baseMessage(msg, 'success', 'hey')
-      emit('fetch-data')
-      close()
+      try {
+        const { msg }: any = await secretsSave(editForm.value)
+        formRef.value.resetFields()
+        sourceForm.value = JSON.parse(JSON.stringify(state.fromData))
+        editForm.value = JSON.parse(JSON.stringify(state.fromData))
+        cleanLastFormData()
+        $baseMessage(msg, 'success', 'hey')
+        emit('fetch-data')
+        close()
+      } catch (error) {
+        // 错误已由请求层统一提示
+        console.error('Secret save error:', error)
+      } finally {
+        state.submit = false
+      }
     }
     state.submit = false
   })

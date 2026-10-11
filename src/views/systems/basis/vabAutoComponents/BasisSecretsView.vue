@@ -140,9 +140,16 @@ const toggleSecret = (key: 'viewAppId' | 'viewAppSecret' | 'viewAppIv') => {
 const fetchData = async (id: any) => {
   if (state.loading) return
   state.loading = true
-  const { data } = await secretsDetail({ id: id || 0 })
-  state.loading = false
-  return data
+  try {
+    const { data } = await secretsDetail({ id: id || 0 })
+    return data
+  } catch (error) {
+    // 错误已由请求层统一提示
+    console.error('Fetch secret detail error:', error)
+    return undefined
+  } finally {
+    state.loading = false
+  }
 }
 
 /**
@@ -151,7 +158,10 @@ const fetchData = async (id: any) => {
  * @description 处理新建/编辑模式初始化逻辑，包含草稿加载功能
  */
 const showView = async (row: any) => {
-  viewForm.value = await fetchData(row.id)
+  const data = await fetchData(row.id)
+  // 详情加载失败（请求层已提示）时不打开抽屉，避免空数据渲染报错
+  if (!data) return
+  viewForm.value = data
   open()
 }
 

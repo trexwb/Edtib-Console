@@ -339,6 +339,7 @@ const fetchData = async () => {
     rows.total = data?.total || 0
     state.loading = false
   } catch (error) {
+    state.loading = false
     console.error('Fetch data error:', error)
     // 可以加入错误处理逻辑，如显示错误信息
   }
@@ -382,14 +383,20 @@ const handleDelete = (row: any = {}) => {
         rowIds = [...state.selectionRows]
       }
       state.loading = true
-      await docsDelete({
-        id: rowIds,
-      })
+      try {
+        await docsDelete({
+          id: rowIds,
+        })
+      } catch (err) {
+        // 错误已由请求层统一提示，此处不再重复弹窗
+        return
+      } finally {
+        state.loading = false
+      }
       ElMessage({
         message: translate('删除成功'),
         type: 'success',
       })
-      state.loading = false
       fetchData()
     })
     .catch((err) => {
@@ -419,14 +426,20 @@ const handleEnable = (row: any = {}) => {
         rowIds = [...state.selectionRows]
       }
       state.loading = true
-      await docsEnable({
-        id: rowIds,
-      })
+      try {
+        await docsEnable({
+          id: rowIds,
+        })
+      } catch (err) {
+        // 错误已由请求层统一提示，此处不再重复弹窗
+        return
+      } finally {
+        state.loading = false
+      }
       ElMessage({
         message: translate('启用成功'),
         type: 'success',
       })
-      state.loading = false
       fetchData()
     })
     .catch((err) => {
@@ -456,14 +469,20 @@ const handleDisable = (row: any = {}) => {
         rowIds = [...state.selectionRows]
       }
       state.loading = true
-      await docsDisable({
-        id: rowIds,
-      })
+      try {
+        await docsDisable({
+          id: rowIds,
+        })
+      } catch (err) {
+        // 错误已由请求层统一提示，此处不再重复弹窗
+        return
+      } finally {
+        state.loading = false
+      }
       ElMessage({
         message: translate('禁用成功'),
         type: 'success',
       })
-      state.loading = false
       fetchData()
     })
     .catch((err) => {

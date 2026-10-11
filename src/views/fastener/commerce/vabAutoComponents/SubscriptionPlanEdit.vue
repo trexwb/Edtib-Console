@@ -160,9 +160,11 @@ const handleConfirm = () => {
       state.dialogFormVisible = false
       emit('success')
     } catch (error) {
+      // 错误已由请求层统一提示
       console.error('Subscription plan save error:', error)
+    } finally {
+      state.loading = false
     }
-    state.loading = false
   })
 }
 

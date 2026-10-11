@@ -346,14 +346,20 @@ const handleBatchSubmit = () => {
     .then(async () => {
       const rowIds = state.selectionRows as number[]
       state.loading = true
-      for (const id of rowIds) {
-        await productsTempSubmit({ id })
+      try {
+        for (const id of rowIds) {
+          await productsTempSubmit({ id })
+        }
+      } catch (err) {
+        // 错误已由请求层统一提示，此处不再重复弹窗
+        return
+      } finally {
+        state.loading = false
       }
       ElMessage({
         message: translate('提交成功'),
         type: 'success',
       })
-      state.loading = false
       fetchData()
     })
     .catch((err) => {
@@ -401,10 +407,12 @@ const fetchData = async () => {
     const { data }: any = await productsTempList(queryForm)
     rows.list = data?.list || []
     rows.total = data?.total || 0
-    state.loading = false
   } catch (error) {
     console.error('Fetch data error:', error)
     // 可以加入错误处理逻辑，如显示错误信息
+  } finally {
+    // loading 只在 try 内置 false 时，一次请求失败会永久拦截查询/翻页/刷新
+    state.loading = false
   }
 }
 

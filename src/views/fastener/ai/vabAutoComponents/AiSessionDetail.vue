@@ -152,9 +152,11 @@ const showView = async (row: any = {}) => {
     total.value = data.total || messages.value.length
     state.truncated = Number(total.value) >= 500
   } catch (error) {
+    // 错误已由请求层统一提示
     console.error('Fetch session detail error:', error)
+  } finally {
+    state.loading = false
   }
-  state.loading = false
   state.drawerFormVisible = true
 }
 

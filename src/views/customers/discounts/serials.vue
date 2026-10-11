@@ -307,6 +307,7 @@ const fetchData = async () => {
     rows.total = data?.total || 0
     state.loading = false
   } catch (error) {
+    state.loading = false
     console.error('Fetch data error:', error)
     // 可以加入错误处理逻辑，如显示错误信息
   }

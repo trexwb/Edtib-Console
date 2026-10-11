@@ -345,6 +345,7 @@ const fetchData = async () => {
     state.loading = false
     fetchFormulasCounts()
   } catch (error) {
+    state.loading = false
     console.error('Fetch data error:', error)
     // 可以加入错误处理逻辑，如显示错误信息
   }
@@ -385,9 +386,9 @@ const handleSizeChange = (value: number) => {
   fetchData()
 }
 // 排序
-const handleSort = (sort: any, id: any) => {
+const handleSort = async (sort: any, id: any) => {
   try {
-    const { data }: any = shapesSort({
+    await shapesSort({
       id: [id],
       sort: sort || 0,
     })
@@ -397,7 +398,13 @@ const handleSort = (sort: any, id: any) => {
     })
     canInputEdits.value = ''
   } catch (error) {
-    console.error('Fetch data error:', error)
+    console.error('Sort error:', error)
+    ElMessage({
+      message: translate('排序失败'),
+      type: 'error',
+    })
+    // v-model 已改写本地 row.sort，失败必须回到服务端真实值
+    fetchData()
   }
 }
 // 添加
@@ -427,14 +434,20 @@ const handleDelete = (row: any = {}) => {
         rowIds = [...state.selectionRows]
       }
       state.loading = true
-      await shapesDelete({
-        id: rowIds,
-      })
+      try {
+        await shapesDelete({
+          id: rowIds,
+        })
+      } catch (err) {
+        // 错误已由请求层统一提示，此处不再重复弹窗
+        return
+      } finally {
+        state.loading = false
+      }
       ElMessage({
         message: translate('删除成功'),
         type: 'success',
       })
-      state.loading = false
       fetchData()
     })
     .catch((err) => {
@@ -464,14 +477,20 @@ const handleEnable = (row: any = {}) => {
         rowIds = [...state.selectionRows]
       }
       state.loading = true
-      await shapesEnable({
-        id: rowIds,
-      })
+      try {
+        await shapesEnable({
+          id: rowIds,
+        })
+      } catch (err) {
+        // 错误已由请求层统一提示，此处不再重复弹窗
+        return
+      } finally {
+        state.loading = false
+      }
       ElMessage({
         message: translate('启用成功'),
         type: 'success',
       })
-      state.loading = false
       fetchData()
     })
     .catch((err) => {
@@ -501,14 +520,20 @@ const handleDisable = (row: any = {}) => {
         rowIds = [...state.selectionRows]
       }
       state.loading = true
-      await shapesDisable({
-        id: rowIds,
-      })
+      try {
+        await shapesDisable({
+          id: rowIds,
+        })
+      } catch (err) {
+        // 错误已由请求层统一提示，此处不再重复弹窗
+        return
+      } finally {
+        state.loading = false
+      }
       ElMessage({
         message: translate('禁用成功'),
         type: 'success',
       })
-      state.loading = false
       fetchData()
     })
     .catch((err) => {

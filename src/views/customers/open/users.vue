@@ -324,14 +324,20 @@ const handleBatchPass = () => {
     .then(async () => {
       const rowIds = state.selectionRows as number[]
       state.loading = true
-      for (const id of rowIds) {
-        await usersReviewSave({ id, status: 1 })
+      try {
+        for (const id of rowIds) {
+          await usersReviewSave({ id, status: 1 })
+        }
+      } catch (err) {
+        // 错误已由请求层统一提示，此处不再重复弹窗
+        return
+      } finally {
+        state.loading = false
       }
       ElMessage({
         message: translate('审核通过'),
         type: 'success',
       })
-      state.loading = false
       fetchData()
     })
     .catch((err) => {
@@ -361,14 +367,20 @@ const handleBatchRefuse = () => {
     .then(async ({ value }) => {
       const rowIds = state.selectionRows as number[]
       state.loading = true
-      for (const id of rowIds) {
-        await usersReviewSave({ id, status: 3, remark: value })
+      try {
+        for (const id of rowIds) {
+          await usersReviewSave({ id, status: 3, remark: value })
+        }
+      } catch (err) {
+        // 错误已由请求层统一提示，此处不再重复弹窗
+        return
+      } finally {
+        state.loading = false
       }
       ElMessage({
         message: translate('驳回成功'),
         type: 'success',
       })
-      state.loading = false
       fetchData()
     })
     .catch((err) => {
@@ -404,6 +416,7 @@ const fetchData = async () => {
     rows.total = data?.total || 0
     state.loading = false
   } catch (error) {
+    state.loading = false
     console.error('Fetch data error:', error)
     // 可以加入错误处理逻辑，如显示错误信息
   }

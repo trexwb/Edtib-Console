@@ -146,7 +146,6 @@ const beforeUpload: UploadProps['beforeUpload'] = async (rawFile) => {
   // console.log('rawFile:', rawFile)
   const fileName = `${rawFile.uid}${rawFile.lastModified}.${(rawFile.name || '').split('.').pop()}`
   await getUploadConfig(fileName)
-  state.try = 0
   await nextTick()
 }
 const handleRemoveKey = async (index: number) => {
@@ -165,6 +164,8 @@ const handleRemove: UploadProps['onChange'] = async (file, uploadFiles) => {
   // console.log('handleRemove:uploadFiles:', JSON.stringify(uploadFiles))
   // console.log('fileList.value', JSON.stringify(fileList.value))
   const indexToRemove = (fileList.value || []).findIndex(item => item.url === (file.url || ''));
+  // 未命中时 findIndex 返回 -1，splice(-1, 1) 会误删末尾文件
+  if (indexToRemove < 0) return
   fileList.value.splice(indexToRemove, 1);
   onChange()
 }
@@ -173,6 +174,8 @@ const handleSuccess: UploadProps['onSuccess'] = async (response, uploadFile, upl
   // console.log('handleSuccess:response:', response)
   // console.log('handleSuccess:uploadFile:', uploadFile)
   // console.log('handleSuccess:uploadFiles:', JSON.stringify(uploadFiles))
+  // 上传成功说明 OSS 策略有效，此后再次失败才允许重新取策略并重试
+  state.try = 0
   onChange()
   // 此时可以利用ext-param将文件进行标记
   // let uploadSuccess = 0

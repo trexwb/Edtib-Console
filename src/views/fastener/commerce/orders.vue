@@ -362,9 +362,15 @@ const handleCloseOrder = (row: any) => {
   })
     .then(async () => {
       state.loading = true
-      await fastenerCommerceOrderClose({ orderNo: row.orderNo })
+      try {
+        await fastenerCommerceOrderClose({ orderNo: row.orderNo })
+      } catch (err) {
+        // 错误已由请求层统一提示，此处不再重复弹窗
+        return
+      } finally {
+        state.loading = false
+      }
       ElMessage({ message: translate('关闭成功'), type: 'success' })
-      state.loading = false
       fetchData()
     })
     .catch((err) => {
@@ -380,9 +386,15 @@ const handleRefundOrder = (row: any) => {
   )
     .then(async () => {
       state.loading = true
-      await fastenerCommerceOrderRefund({ orderNo: row.orderNo })
+      try {
+        await fastenerCommerceOrderRefund({ orderNo: row.orderNo })
+      } catch (err) {
+        // 错误已由请求层统一提示，此处不再重复弹窗
+        return
+      } finally {
+        state.loading = false
+      }
       ElMessage({ message: translate('标记成功'), type: 'success' })
-      state.loading = false
       fetchData()
     })
     .catch((err) => {

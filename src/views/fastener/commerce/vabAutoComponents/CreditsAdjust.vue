@@ -31,7 +31,7 @@
 <script lang="ts" setup>
 import { translate } from '/@/i18n'
 import { fastenerCommerceCreditsAdjust } from '/@/api/fastenerCommerce'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 const templateName = 'FastenerCommerceCreditsAdjust'
 defineOptions({
@@ -82,6 +82,17 @@ const handleConfirm = () => {
   formRef.value?.validate(async (valid: boolean) => {
     if (!valid) return
     if (state.loading) return
+    // 资金操作二次确认：校验通过后、调用保存接口前确认目标客户与调整方向/数额
+    try {
+      await ElMessageBox.confirm(
+        translate(`确认要为客户「${form.customerId}」${form.delta > 0 ? '增加' : '扣减'} ${Math.abs(form.delta)} 积分吗？`),
+        translate('人工积分调整'),
+        { confirmButtonText: translate('确认'), cancelButtonText: translate('取消'), type: 'warning', draggable: false }
+      )
+    } catch {
+      /* 用户取消二次确认，不发起请求 */
+      return
+    }
     state.loading = true
     try {
       const res: any = await fastenerCommerceCreditsAdjust({
@@ -99,9 +110,11 @@ const handleConfirm = () => {
       state.dialogFormVisible = false
       emit('success')
     } catch (error) {
+      // 错误已由请求层统一提示
       console.error('Credits adjust error:', error)
+    } finally {
+      state.loading = false
     }
-    state.loading = false
   })
 }
 

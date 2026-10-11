@@ -186,9 +186,16 @@ const checkAllow = () => {
 const fetchData = async (id: any) => {
   if (state.loading) return
   state.loading = true
-  const { data } = await rolesDetail({ id: id || 0 })
-  state.loading = false
-  return data
+  try {
+    const { data } = await rolesDetail({ id: id || 0 })
+    return data
+  } catch (error) {
+    // 错误已由请求层统一提示
+    console.error('Fetch role detail error:', error)
+    return undefined
+  } finally {
+    state.loading = false
+  }
 }
 
 /**
@@ -277,6 +284,11 @@ const showEdit = async (row: any) => {
     state.isCreate = false
     state.title = translate('编辑')
     const detailRow = await fetchData(row.id)
+    // 详情加载失败（请求层已提示）时不打开空表单，避免误编辑/误提交
+    if (!detailRow) {
+      loadingInstance.close()
+      return
+    }
     // 回显勾选态：operation 归一化为 "key:action"；permissions 为模块标识（无 action），仅作兜底合并
     const moduleKeys = Array.isArray(detailRow?.permissions)
       ? detailRow.permissions.filter((item: any) => typeof item === 'string')
@@ -346,15 +358,22 @@ const save = () => {
 
   formRef.value.validate(async (valid: any) => {
     if (valid) {
-      await getSelectedKeys()
-      const { msg }: any = await rolesSave(editForm.value)
-      formRef.value.resetFields()
-      sourceForm.value = JSON.parse(JSON.stringify(state.fromData))
-      editForm.value = JSON.parse(JSON.stringify(state.fromData))
-      cleanLastFormData()
-      $baseMessage(msg, 'success', 'hey')
-      emit('fetch-data')
-      close()
+      try {
+        await getSelectedKeys()
+        const { msg }: any = await rolesSave(editForm.value)
+        formRef.value.resetFields()
+        sourceForm.value = JSON.parse(JSON.stringify(state.fromData))
+        editForm.value = JSON.parse(JSON.stringify(state.fromData))
+        cleanLastFormData()
+        $baseMessage(msg, 'success', 'hey')
+        emit('fetch-data')
+        close()
+      } catch (error) {
+        // 错误已由请求层统一提示
+        console.error('Role save error:', error)
+      } finally {
+        state.submit = false
+      }
     }
     state.submit = false
   })

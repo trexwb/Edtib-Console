@@ -262,9 +262,14 @@ const checkAllow = () => {
 const fetchData = async (id: any) => {
   if (state.loading) return
   state.loading = true
-  const { data } = await variablesDetail({ id: id || 0 })
-  state.loading = false
-  return data
+  try {
+    const { data } = await variablesDetail({ id: id || 0 })
+    return data
+  } catch (err) {
+    // 错误已由请求层统一提示
+  } finally {
+    state.loading = false
+  }
 }
 
 /**
@@ -370,18 +375,25 @@ const save = () => {
 
   formRef.value.validate(async (valid: any) => {
     if (valid) {
-      flushEditorDetail()
-      sanitizeLangContent()
-      const { msg }: any = await variablesSave(editForm.value)
-      formRef.value.resetFields()
-      sourceForm.value = JSON.parse(JSON.stringify(state.fromData))
-      editForm.value = JSON.parse(JSON.stringify(state.fromData))
-      cleanLastFormData()
-      $baseMessage(msg, 'success', 'hey')
-      emit('fetch-data')
-      close()
+      try {
+        flushEditorDetail()
+        sanitizeLangContent()
+        const { msg }: any = await variablesSave(editForm.value)
+        formRef.value.resetFields()
+        sourceForm.value = JSON.parse(JSON.stringify(state.fromData))
+        editForm.value = JSON.parse(JSON.stringify(state.fromData))
+        cleanLastFormData()
+        $baseMessage(msg, 'success', 'hey')
+        emit('fetch-data')
+        close()
+      } catch (err) {
+        // 错误已由请求层统一提示
+      } finally {
+        state.submit = false
+      }
+    } else {
+      state.submit = false
     }
-    state.submit = false
   })
 }
 

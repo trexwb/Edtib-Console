@@ -278,9 +278,14 @@ const checkAllow = () => {
 const fetchData = async (id: any) => {
   if (state.loading) return
   state.loading = true
-  const { data } = await interpretationsDetail({ id: id || 0 })
-  state.loading = false
-  return data
+  try {
+    const { data } = await interpretationsDetail({ id: id || 0 })
+    return data
+  } catch {
+    // 错误已由请求层统一提示
+  } finally {
+    state.loading = false
+  }
 }
 
 const templateForm = reactive<any>({
@@ -322,37 +327,47 @@ const changeDocs = (value: any) => {
 const remoteProductMethod = async (query: string) => {
   if (state.loading) return
   state.loading = true
-  if (query) {
-    state.productsOptions = [];
-    const { data } = await productsList({ filter: { keywords: query }, page: 1, pageSize: 10 })
-    if (data?.total > 0 && data?.list.length > 0) {
-      state.productsOptions = data?.list.map((item: any) => ({
-        label: `${item.standard}${item.grade ? '/' : ''}${item.grade} ${item.code}-${item.year} ${textOfNames(item.names)}`,
-        value: item.id
-      }))
+  try {
+    if (query) {
+      state.productsOptions = [];
+      const { data } = await productsList({ filter: { keywords: query }, page: 1, pageSize: 10 })
+      if (data?.total > 0 && data?.list.length > 0) {
+        state.productsOptions = data?.list.map((item: any) => ({
+          label: `${item.standard}${item.grade ? '/' : ''}${item.grade} ${item.code}-${item.year} ${textOfNames(item.names)}`,
+          value: item.id
+        }))
+      }
+    } else {
+      state.productsOptions = []
     }
-  } else {
-    state.productsOptions.value = []
+  } catch {
+    // 错误已由请求层统一提示
+  } finally {
+    state.loading = false
   }
-  state.loading = false
 }
 
 const remoteDocsMethod = async (query: string) => {
   if (state.loading) return
   state.loading = true
-  if (query) {
-    state.docsOptions = [];
-    const { data } = await docsList({ filter: { keywords: query }, page: 1, pageSize: 10 })
-    if (data?.total > 0 && data?.list.length > 0) {
-      state.docsOptions = data?.list.map((item: any) => ({
-        label: item.title || '',
-        value: item.id
-      }))
+  try {
+    if (query) {
+      state.docsOptions = [];
+      const { data } = await docsList({ filter: { keywords: query }, page: 1, pageSize: 10 })
+      if (data?.total > 0 && data?.list.length > 0) {
+        state.docsOptions = data?.list.map((item: any) => ({
+          label: item.title || '',
+          value: item.id
+        }))
+      }
+    } else {
+      state.docsOptions = []
     }
-  } else {
-    state.docsOptions.value = []
+  } catch {
+    // 错误已由请求层统一提示
+  } finally {
+    state.loading = false
   }
-  state.loading = false
 }
 
 // 监听编辑器内容变化
@@ -476,19 +491,24 @@ const save = () => {
   state.submit = true
 
   formRef.value.validate(async (valid: any) => {
-    if (valid) {
-      flushEditorDetail()
-      sanitizeLangContent()
-      const { msg }: any = await interpretationsSave(editForm.value)
-      formRef.value.resetFields()
-      sourceForm.value = JSON.parse(JSON.stringify(state.fromData))
-      editForm.value = JSON.parse(JSON.stringify(state.fromData))
-      cleanLastFormData()
-      $baseMessage(msg, 'success', 'hey')
-      emit('fetch-data')
-      close()
+    try {
+      if (valid) {
+        flushEditorDetail()
+        sanitizeLangContent()
+        const { msg }: any = await interpretationsSave(editForm.value)
+        formRef.value.resetFields()
+        sourceForm.value = JSON.parse(JSON.stringify(state.fromData))
+        editForm.value = JSON.parse(JSON.stringify(state.fromData))
+        cleanLastFormData()
+        $baseMessage(msg, 'success', 'hey')
+        emit('fetch-data')
+        close()
+      }
+    } catch {
+      // 错误已由请求层统一提示
+    } finally {
+      state.submit = false
     }
-    state.submit = false
   })
 }
 

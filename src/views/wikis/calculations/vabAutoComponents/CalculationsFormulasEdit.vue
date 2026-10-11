@@ -468,36 +468,49 @@ const checkAllow = () => {
 const fetchData = async (id: any) => {
   if (state.loading) return
   state.loading = true
-  const { data } = await formulasDetail({ id: id || 0 })
-  state.loading = false
-  return data
+  try {
+    const { data } = await formulasDetail({ id: id || 0 })
+    return data
+  } catch (err) {
+    // 错误已由请求层统一提示
+  } finally {
+    state.loading = false
+  }
 }
 
 const fetchShapes = async () => {
-  const { data } = await shapesAll()
-  // HTTP 返回按位置分组的对象，IPC 返回行数组，统一归一为 { [location]: shapes[] }
-  if (Array.isArray(data)) {
-    const grouped: Record<string, any[]> = {}
-    ;(data || []).forEach((item: any) => {
-      const key = String(item.location ?? '')
-      if (!grouped[key]) grouped[key] = []
-      grouped[key].push(item)
-    })
-    state.shapes = grouped
-  } else {
-    state.shapes = data || {}
+  try {
+    const { data } = await shapesAll()
+    // HTTP 返回按位置分组的对象，IPC 返回行数组，统一归一为 { [location]: shapes[] }
+    if (Array.isArray(data)) {
+      const grouped: Record<string, any[]> = {}
+      ;(data || []).forEach((item: any) => {
+        const key = String(item.location ?? '')
+        if (!grouped[key]) grouped[key] = []
+        grouped[key].push(item)
+      })
+      state.shapes = grouped
+    } else {
+      state.shapes = data || {}
+    }
+  } catch (err) {
+    // 错误已由请求层统一提示
   }
 }
 
 const fetchVariables = async () => {
-  const { data } = await variablesAll()
-  state.variables = {};
-  // variablesAll 在 HTTP/IPC 下均返回行数组（旧代码只兼容 {list} 包裹导致下拉恒为空）
-  const variablesList = Array.isArray(data) ? data : data?.list || [];
-  variablesList.forEach((item: any) => {
-    if (!state.variables[item.type]) state.variables[item.type] = []
-    state.variables[item.type].push({ ...item })
-  })
+  try {
+    const { data } = await variablesAll()
+    state.variables = {};
+    // variablesAll 在 HTTP/IPC 下均返回行数组（旧代码只兼容 {list} 包裹导致下拉恒为空）
+    const variablesList = Array.isArray(data) ? data : data?.list || [];
+    variablesList.forEach((item: any) => {
+      if (!state.variables[item.type]) state.variables[item.type] = []
+      state.variables[item.type].push({ ...item })
+    })
+  } catch (err) {
+    // 错误已由请求层统一提示
+  }
 }
 
 const changeQuick = (value: any) => {
@@ -669,20 +682,27 @@ const save = () => {
 
   formRef.value.validate(async (valid: any) => {
     if (valid) {
-      flushEditorDetail()
-      sanitizeLangContent()
-      const payload = JSON.parse(JSON.stringify(editForm.value))
-      if (payload.shape_id === '' || payload.shape_id === undefined) payload.shape_id = null
-      const { msg }: any = await formulasSave(payload)
-      formRef.value.resetFields()
-      sourceForm.value = JSON.parse(JSON.stringify(state.fromData))
-      editForm.value = JSON.parse(JSON.stringify(state.fromData))
-      cleanLastFormData()
-      $baseMessage(msg, 'success', 'hey')
-      emit('fetch-data')
-      close()
+      try {
+        flushEditorDetail()
+        sanitizeLangContent()
+        const payload = JSON.parse(JSON.stringify(editForm.value))
+        if (payload.shape_id === '' || payload.shape_id === undefined) payload.shape_id = null
+        const { msg }: any = await formulasSave(payload)
+        formRef.value.resetFields()
+        sourceForm.value = JSON.parse(JSON.stringify(state.fromData))
+        editForm.value = JSON.parse(JSON.stringify(state.fromData))
+        cleanLastFormData()
+        $baseMessage(msg, 'success', 'hey')
+        emit('fetch-data')
+        close()
+      } catch (err) {
+        // 错误已由请求层统一提示
+      } finally {
+        state.submit = false
+      }
+    } else {
+      state.submit = false
     }
-    state.submit = false
   })
 }
 

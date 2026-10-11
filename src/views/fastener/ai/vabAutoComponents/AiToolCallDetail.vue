@@ -127,9 +127,11 @@ const showView = async (row: any = {}) => {
       { key: 'result', label: translate('返回结果'), text: formatJson(detail.value.result) },
     ]
   } catch (error) {
+    // 错误已由请求层统一提示
     console.error('Fetch tool call detail error:', error)
+  } finally {
+    state.loading = false
   }
-  state.loading = false
   state.drawerFormVisible = true
 }
 

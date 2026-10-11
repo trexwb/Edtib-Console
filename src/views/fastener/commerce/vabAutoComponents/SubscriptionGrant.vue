@@ -39,7 +39,7 @@
 <script lang="ts" setup>
 import { translate } from '/@/i18n'
 import { fastenerCommerceSubscriptionGrant, fastenerCommerceSubscriptionPlans } from '/@/api/fastenerCommerce'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 const templateName = 'FastenerCommerceSubscriptionGrant'
 defineOptions({
@@ -116,6 +116,21 @@ const handleConfirm = () => {
   formRef.value?.validate(async (valid: boolean) => {
     if (!valid) return
     if (state.loading) return
+    // 资金操作二次确认：校验通过后、调用赠送接口前确认目标客户与赠送内容
+    const matched = plans.value.find((plan) => Number(plan.id) === Number(form.planId))
+    const confirmMessage = form.planId
+      ? translate(`确认要为客户「${form.customerId}」赠送订阅计划「${matched?.planName || form.planId}」吗？`)
+      : translate(`确认要为客户「${form.customerId}」顺延赠送 ${form.days} 天订阅吗？`)
+    try {
+      await ElMessageBox.confirm(
+        confirmMessage,
+        translate('后台赠送/延长订阅'),
+        { confirmButtonText: translate('确认'), cancelButtonText: translate('取消'), type: 'warning', draggable: false }
+      )
+    } catch {
+      /* 用户取消二次确认，不发起请求 */
+      return
+    }
     state.loading = true
     try {
       await fastenerCommerceSubscriptionGrant({
@@ -128,9 +143,11 @@ const handleConfirm = () => {
       state.dialogFormVisible = false
       emit('success')
     } catch (error) {
+      // 错误已由请求层统一提示
       console.error('Subscription grant error:', error)
+    } finally {
+      state.loading = false
     }
-    state.loading = false
   })
 }
 

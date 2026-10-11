@@ -325,9 +325,15 @@ const handleToggle = (row: any) => {
   )
     .then(async () => {
       state.loading = true
-      await fastenerCommerceSubscriptionPlanToggle(row.id, next)
+      try {
+        await fastenerCommerceSubscriptionPlanToggle(row.id, next)
+      } catch (err) {
+        // 错误已由请求层统一提示，此处不再重复弹窗
+        return
+      } finally {
+        state.loading = false
+      }
       ElMessage({ message: translate('操作成功'), type: 'success' })
-      state.loading = false
       fetchData()
     })
     .catch((err) => {
@@ -343,9 +349,15 @@ const handleDelete = (row: any) => {
   )
     .then(async () => {
       state.loading = true
-      await fastenerCommerceSubscriptionPlanDelete({ id: row.id })
+      try {
+        await fastenerCommerceSubscriptionPlanDelete({ id: row.id })
+      } catch (err) {
+        // 错误已由请求层统一提示，此处不再重复弹窗
+        return
+      } finally {
+        state.loading = false
+      }
       ElMessage({ message: translate('删除成功'), type: 'success' })
-      state.loading = false
       fetchData()
     })
     .catch((err) => {

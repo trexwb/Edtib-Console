@@ -148,9 +148,14 @@ const state = reactive<any>({
 const fetchData = async (id: any) => {
   if (state.loading) return
   state.loading = true
-  const { data } = await variablesDetail({ id: id || 0 })
-  state.loading = false
-  return data
+  try {
+    const { data } = await variablesDetail({ id: id || 0 })
+    return data
+  } catch (err) {
+    // 错误已由请求层统一提示
+  } finally {
+    state.loading = false
+  }
 }
 
 /**
@@ -160,7 +165,7 @@ const fetchData = async (id: any) => {
  */
 const showView = async (row: any) => {
   const loadingInstance = ElLoading.service({ fullscreen: true });
-  viewForm.value = await fetchData(row.id);
+  viewForm.value = await fetchData(row.id) || {};
   open();
   loadingInstance.close();
 }
