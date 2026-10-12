@@ -510,8 +510,8 @@ stateDiagram-v2
 
 ### 5.1 审计范围与方法
 
-- 老项目：`/Users/wbtrex/website/localServer/node/edtib/client/console`（**严格只读，未修改任何文件**）；
-- 对照项目：`/Users/wbtrex/website/localServer/node/edtib/books`（同仓 Tauri 骨架，仅读取）；
+- 老项目：`client/console`（**严格只读，未修改任何文件**）；
+- 对照项目：`books`（同仓 Tauri 骨架，仅读取）；
 - 方法：目录遍历、`grep`（密钥/同步/队列关键字）、逐文件阅读关键实现（`route/`、`controller/`、`config/`、`main.ts`、`web/src/utils/`、`web/src/services/`、`web/src/api/`）；
 - 审计时间：2026-09-29。
 

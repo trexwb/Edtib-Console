@@ -1,7 +1,7 @@
 # console 迁移计划：Electron → Tauri v2（分批执行）
 
-- 老项目（严格只读）：`/Users/wbtrex/website/localServer/node/edtib/client/console`
-- 新项目：`/Users/wbtrex/website/localServer/node/edtib/console`
+- 老项目（严格只读）：`client/console`
+- 新项目：`console`
 - 版本号：`package.json` / `src-tauri/tauri.conf.json` / `src-tauri/Cargo.toml` 统一 `1.0.0`
 - 范围约束：不迁移历史数据、不做旧库兼容；本轮**不实现 outbox / 密钥改造**，保持老行为逻辑
 - 覆盖度对照表：[`docs/migration-coverage.md`](./migration-coverage.md)——「老功能点 → 新实现位置」逐类核对结果与差异编号（D-01 ~ D-12），**本文档各节的实装状态以该表为准**

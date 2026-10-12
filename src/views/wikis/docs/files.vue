@@ -3,7 +3,6 @@
  * @Date: 2025-03-25 11:42:30
  * @LastEditors: ${git_name}
  * @LastEditTime: 2026-09-14 17:09:28
- * @FilePath: /fastenerTradeWorkbench/Users/wbtrex/website/localServer/node/edtib/client/console/web/src/views/wikis/docs/files.vue
  * @Description: 
  * 一花一世界，一叶一如来
  * Copyright (c) 2025 by 杭州大美, All Rights Reserved. 

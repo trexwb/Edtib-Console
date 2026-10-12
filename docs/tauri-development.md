@@ -103,7 +103,7 @@ Rust 侧**源码不含任何密钥**（AGENTS §6.3）。三类注入源，优�
 图标以老项目 `client/console/electron/assets/images/icon.png` 为源图，用 Tauri CLI 一源多出生成：
 
 ```bash
-npx tauri icon "/Users/<user>/website/localServer/node/edtib/client/console/electron/assets/images/icon.png"
+npx tauri icon "../client/console/electron/assets/images/icon.png"
 ```
 
 生成 `src-tauri/icons/` 下的 `icon.icns`（macOS）、`icon.ico`（Windows）、各尺寸 PNG 与 Windows

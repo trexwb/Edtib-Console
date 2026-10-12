@@ -4,7 +4,6 @@
  * @LastEditTime: 2026-09-10 17:03:22
  * @LastEditors: ${git_name}
  * @Description: In User Settings Edit
- * @FilePath: /fastenerTradeWorkbench/Users/wbtrex/website/localServer/node/edtib/client/console/web/src/utils/storage.ts
  * 一花一世界，一叶一如来
  * Copyright (c) 2024 by 杭州大美科技, All Rights Reserved. 
  */

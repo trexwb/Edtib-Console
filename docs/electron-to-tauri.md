@@ -5,11 +5,11 @@
 >
 > 状态：**骨架阶段**。本仓库当前只有项目骨架与配置，尚未迁移任何 web 业务代码。
 >
-> - 老项目（只读参考，不做任何修改）：`/Users/wbtrex/website/localServer/node/edtib/client/console`
+> - 老项目（只读参考，不做任何修改）：`client/console`
 >   - Electron 主程序：`.../client/console/electron`
 >   - 前端（Vue3 + Vite）：`.../client/console/web`
-> - 新项目（本仓库）：`/Users/wbtrex/website/localServer/node/edtib/console`
-> - 同仓已完成迁移的参照项目：`/Users/wbtrex/website/localServer/node/edtib/books`
+> - 新项目（本仓库）：`console`
+> - 同仓已完成迁移的参照项目：`books`
 
 ---
 

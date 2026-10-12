@@ -1,8 +1,8 @@
 # 迁移覆盖度对照表：老 console（Electron）→ 新 edtib/console（Tauri v2）
 
 - 核对日期：2026-09-29（2026-10-01 复核：D-05 / D-08 / D-12 已闭环，本文按最新代码更新）
-- 老项目（严格只读）：`/Users/wbtrex/website/localServer/node/edtib/client/console`（历史核对路径，当前机器已不存在，仅保留作对照记录）
-- 新项目：`/Users/wbtrex/AI助手/node/edtib/console`
+- 老项目（严格只读）：`client/console`（历史核对路径，当前机器已不存在，仅保留作对照记录）
+- 新项目：`console`
 - 核对方式：文件级清单比对（`find` / `diff` / 计数）+ 源码逐点核对；老项目全程只读，未做任何写入
 - 状态图例：
 
