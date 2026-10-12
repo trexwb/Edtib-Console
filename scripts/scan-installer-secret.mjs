@@ -105,6 +105,28 @@ const files = walk(BUNDLE)
 const archives = files.filter(f => /\.(dmg|zip|gz|tar|xz)$/.test(f))
 const plain = files.filter(f => !/\.(dmg|zip|gz|tar|xz)$/.test(f))
 
+// 陈旧产物检测：源码比打包结果新时，本次扫描描述的是「上一次构建」而不是当前代码，
+// 必须显式提示，否则扫描通过会被误读成当前源码安全。
+const newestMtime = list => {
+  let newest = 0
+  for (const f of list) {
+    try {
+      newest = Math.max(newest, statSync(f).mtimeMs)
+    } catch {
+      /* 忽略无法 stat 的文件 */
+    }
+  }
+  return newest
+}
+const bundleNewest = newestMtime(files)
+const sourceNewest = newestMtime(walk(path.join(ROOT, 'src-tauri/src')).concat(ENV_FILES.map(f => path.join(ROOT, f)).filter(existsSync)))
+if (sourceNewest > bundleNewest) {
+  console.log(
+    `[WARN 产物陈旧] 源码/环境文件比 bundle 下最新产物更新（bundle=${new Date(bundleNewest).toISOString()} ` +
+      `源码=${new Date(sourceNewest).toISOString()}）：本次扫描描述的是上一次构建，需重新 tauri:build 后再扫`
+  )
+}
+
 const hits = []
 for (const file of plain) {
   let text

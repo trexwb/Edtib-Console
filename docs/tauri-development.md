@@ -94,7 +94,44 @@ Rust 侧**源码不含任何密钥**（AGENTS §6.3）。三类注入源，优�
 
 > 打包态 macOS 从 Finder 启动不会继承 shell 环境变量，因此发布机必须部署 `console.env`；
 > 变量清单与含义见仓库根 `.env.example`（`VITE_*` 为前端构建期，`EDTIB_*` 为 Rust 运行期）。
-> `VITE_APP_ID` / `VITE_APP_SECRET` 必须与 `TAURI_APP_ID` / `TAURI_APP_SECRET` 同值，否则本地链路验签返回 `4016000305`。
+> `VITE_APP_ID` / `VITE_APP_SECRET` / `VITE_APP_IV` 必须与**同一环境文件**里的
+> `TAURI_LINK_ID` / `TAURI_LINK_SECRET` / `TAURI_LINK_IV` 同值（`npm run tauri:dev` 由
+> `scripts/with-tauri-env.mjs` 自动映射），否则本地链路验签返回 `4016000305`。
+> 注意口径：`TAURI_LINK_*` 是「渲染层 ↔ tauri」的本地链路密钥，`TAURI_APP_*` 是
+> 「tauri → 后端网关」的出站凭证，两组不是同一对密钥。
+
+### 3.1.1 两套密钥的边界
+
+| 键位 | 用途 | 所在链路 | 是否进 Web 产物 |
+| --- | --- | --- | --- |
+| `VITE_APP_ID/SECRET/IV` ↔ `TAURI_LINK_ID/SECRET/IV` | 本地链路：渲染层与 Rust 之间的验签与加解密 | 渲染层 ↔ Rust（不出机器） | **是**（按设计：Rust 要用同一对密钥验通前端请求） |
+| `TAURI_APP_ID/SECRET/IV` + `TAURI_APP_BASE_URL` | 出站网关：Rust 调 gateway 的凭证与地址 | Rust → gateway | **否**（`npm run scan:dist` 命中即构建失败） |
+
+`TAURI_LINK_*` 会被编译进渲染层产物，因此**本地链路不是保密边界**；`TAURI_APP_*` 只从
+进程环境或 `console.env` 读入。两组密钥不要互相复制。
+
+### 3.1.2 出网地址与跨环境隔离（2026-10 加固）
+
+| 规则 | 表现 |
+| --- | --- |
+| 源码不内置任何 dev/prod 网关地址 | `TAURI_APP_BASE_URL` 与本地 `secrets.app_url` 都缺失时，转发明确失败：「缺少出站网关地址」 |
+| 配置地址优先，表内地址仅兜底 | 两者同时存在必须同源，否则「配置网关地址…与本地 secrets.app_url…不一致，已拒绝转发」（防止 `db_update` 改写表内地址，把带签名凭证的请求带到任意主机） |
+| 正式包出网白名单 | release 构建只允许 `config::ALLOWED_GATEWAY_ORIGINS` 内的自有 https 域名；跨主机 3xx 重定向同样拒绝跟随 |
+| 开发/测试构建反向隔离 | `tauri:dev`（development）默认拒绝把请求带到正式网关 `gateway.edtib.com`，确需联调须显式 `EDTIB_ALLOW_PROD_EGRESS=1` |
+| 正式环境文件不被调试链路读取 | `npm run tauri:dev` 固定读 `.env.test`；`EDTIB_TAURI_ENV=.env.production` 会被拒绝，除非 `EDTIB_TAURI_ALLOW_PROD_ENV=1` |
+| 本地文件读取边界 | `fs_read_file` / `fs_write_file` / `fs_delete_file` 拒绝 `.env` / `.db*` / `.sqlcipher-key`，渲染层无法再经文件命令读出密钥文件或本地库 |
+
+### 3.1.3 凭证方案的结论
+
+本节只解决「暴露面收口」，不解决「对本机用户保密」——后者在客户端长期持有 `TAURI_APP_SECRET`
+的前提下不可能成立（明文 `console.env`、本地 `secrets` 表、进程内存、调试器四条路径本机可达，
+`strip`/落库加密/改名只提高成本）。方案 A（服务端代理）/ B（短时凭证）/ C（客户端持有）的
+逐项对比、服务端已具备的能力与缺口、以及实施顺序，见
+`../books/docs/security/tauri-secret-hardening.md` §9；console 与 books 共用同一结论。
+
+要点：AI/短信/OSS 这类真第三方在网关侧已经是方案 A（密钥只在服务端，客户端只带用户令牌）；
+桌面主链路仍是方案 C；根治方向是方案 B（设备鉴权换短时签名密钥），需要后端排期与签名协议
+双改，客户端仓库不得单方面变更（本轮已保持协议原样）。
 
 ---
 
@@ -173,10 +210,14 @@ git push origin v1.0.0
 | 检查项 | 命令 | 期望 |
 | --- | --- | --- |
 | Rust 侧编译与配置校验 | `cd src-tauri && cargo check --all-targets` | `Finished`，无 error（存量 warning 为未引用的兼容项） |
-| Rust 单测 | `cd src-tauri && cargo test` | `31 passed; 0 failed` |
+| Rust 单测 | `cd src-tauri && cargo test` | `39 passed; 0 failed`（含出网地址、头剥离、密钥文件、时钟偏移等加固用例） |
 | 前端类型检查 | `npm run typecheck` | 无输出，exit 0 |
-| 前端生产构建 | `npm run build:check` | 输出 `dist/index.html` 与 `assets/*`（需 `.env.local` 授权码，见 §2 注意事项） |
-| 密钥注入自检 | 启动后看日志 | 无「本地链路密钥未配置或长度非法」`ERROR`；出现该日志说明 `TAURI_APP_*` / `console.env` 缺失，此时所有转发请求被拒绝 |
+| 前端生产构建 | `npm run build:check` | 输出 `dist/index.html` 与 `static/*`，末尾自动跑产物密钥扫描（需 `.env.local` 授权码，见 §2 注意事项） |
+| Web 产物密钥扫描 | `npm run scan:dist` | `结论：Web 产物未检出任一出站网关凭证…`，exit 0；命中 `TAURI_APP_*` 即 exit 1 |
+| 安装包密钥扫描 | `npm run scan:installer` | 打包后扫描 `src-tauri/target/release/bundle`，`TAURI_APP_*` 命中即 exit 1（`.dmg` 为压缩容器，需挂载后再扫） |
+| 密钥注入自检 | 启动后看日志 | 无「本地链路密钥未配置或长度非法」`ERROR`；出现该日志说明 `TAURI_LINK_*`（或 `console.env`）缺失，此时所有转发请求被拒绝 |
+| 出站地址自检 | 首次 `proxy_request` | 若日志/响应为「缺少出站网关地址」「配置网关地址…与本地 secrets.app_url…不一致」「开发/测试构建拒绝访问正式网关」，说明环境口径未对齐，按 §3.1.2 修正而不是改代码 |
 | Tauri 环境信息 | `npm run tauri -- info` | 正确识别 Rust / Node / CLI 版本 |
 | 开发运行 | `npm run tauri dev` | 弹出「EDTIB控制中台」窗口（9002 端口 dev server）；设置 → 检查更新页不再报 `electronAPI` 未定义 |
+| 桌面联调 | `npm run tauri:dev` | 读 `.env.test` 注入；缺 `TAURI_LINK_*` 或长度非 32/16 时脚本直接 exit 1；指向 `.env.production` 需 `EDTIB_TAURI_ALLOW_PROD_ENV=1` |
 

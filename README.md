@@ -56,7 +56,11 @@ npm install            # 安装前端依赖（Vue / Vite / TS）与 Tauri CLI
 npm run dev            # 仅启动前端 dev server（http://localhost:9002；.env.development＝浏览器直连测试网关 gateway-dev.edtib.com）
 npm run tauri:dev      # 启动完整桌面应用（前端经 dev:test 加载 .env.test＝本地链路密钥，Rust 侧由 with-tauri-env.mjs 注入 TAURI_LINK_*/TAURI_APP_*，出站请求 TAURI_APP_BASE_URL 对应的网关 + Rust 热重载）
 
-npm run build          # 前端类型检查 + 生产构建（输出 dist/）
+npm run build          # 完整桌面端出包链：vite:build（生产构建 + 产物密钥扫描）→ tauri:build（含 beforeBuildCommand 的单文件重建）→ make-dmg → 安装包密钥扫描
+                       # 单跑 Web 资源构建请用 npm run vite:build；仅类型检查 + Web 构建用 npm run build:check
+                       # 注意：本链不做任何凭证注入——出站网关凭证只来自 <AppData>/console.env 或本地 secrets 表
+npm run scan:dist      # 扫描 dist/：检出 TAURI_APP_*（出站网关凭证）或非本环境链路密钥即 exit 1
+npm run scan:installer # 扫描 src-tauri/target/release/bundle/ 的已展开产物与二进制（.dmg 需挂载后再扫）
 npm run tauri build    # 打包安装包（产物见 src-tauri/target/release/bundle/）
 
 npx tauri icon <1024x1024.png>                            # 由源图重新生成全套应用图标
