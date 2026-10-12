@@ -77,7 +77,8 @@ export default defineConfig(({ mode }: ConfigEnv): UserConfig => {
           entryFileNames: outputHash ? 'static/js/[name]-[hash].js' : 'static/js/[name].js',
           assetFileNames: outputHash ? 'static/[ext]/[name]-[hash].[ext]' : 'static/[ext]/[name].[ext]',
           // 分包策略：将大型库单独打包，减少首屏 bundle 体积
-          manualChunks: (id) => {
+          // 桌面端（TAURI_BUILD）走 singlefile 内联，codeSplitting=false 与 manualChunks 互斥，故关闭
+          manualChunks: process.env.TAURI_BUILD ? undefined : (id) => {
             // Element Plus 相关
             if (id.includes('element-plus') || id.includes('@element-plus/icons-vue')) {
               return 'element-plus'

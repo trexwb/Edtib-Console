@@ -8,6 +8,7 @@ import { createBanner } from './banner'
 import { createMock } from './mock'
 import { createProgress } from './progress'
 import { createPwa } from './pwa'
+import { viteSingleFile } from 'vite-plugin-singlefile'
 import { createSvgIcons } from './svgSprite'
 import { createUnPlugin } from './unplugin'
 // import { createRollup } from './rollup/'
@@ -20,6 +21,9 @@ const viteUser = vitePrefix + 'USER_'
 
 export const createVitePlugin = (env: Record<string, string>) => {
   const vitePlugins: (Plugin | Plugin[])[] = [vue()]
+  // 桌面端（Tauri）构建通过 beforeBuildCommand 注入 TAURI_BUILD=1：
+  // 内联全部 chunk 为单文件并降级 module 脚本，规避 Tauri 资源协议下的 crossorigin / SW 白屏（对齐 lockPass）。
+  const isTauri = !!process.env.TAURI_BUILD
   const userName = env[`${viteApp}GITHUB_USER_NAME`]
   const secretKey = env[`${viteApp}SECRET_KEY`]
   const nodeEnv = env[`${viteUser}NODE_ENV`]
@@ -40,7 +44,12 @@ export const createVitePlugin = (env: Record<string, string>) => {
   vitePlugins.push(vueJsx())
   vitePlugins.push(createProgress(env) as any)
   vitePlugins.push(createUnPlugin(env))
-  vitePlugins.push(createPwa())
+  if (isTauri) {
+    // 桌面端：跳过 PWA（SW 在 Tauri webview 不被支持，且会被 remove-dist-sw 清理）；改用 singlefile 内联
+    vitePlugins.push(viteSingleFile({ demoteModuleScripts: true }))
+  } else {
+    vitePlugins.push(createPwa())
+  }
   vitePlugins.push(createMock())
   vitePlugins.push(createSvgIcons())
   vitePlugins.push(createBanner())
