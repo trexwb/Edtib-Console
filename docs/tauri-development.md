@@ -23,7 +23,7 @@
 
 ```bash
 npm install                # 安装前端依赖（Vue / Vite / TS）与 Tauri CLI
-npm run dev                # 仅启动前端 dev server（http://localhost:1430）
+npm run dev                # 仅启动前端 dev server（http://localhost:9002）
 npm run tauri dev          # 启动完整桌面应用（前端 + Rust 热重载）
 npm run typecheck            # 仅类型检查（vue-tsc --noEmit）
 npm run build                # 前端生产构建（vite build，输出 dist/；不含类型检查）
@@ -40,7 +40,7 @@ cd src-tauri && cargo test    # Rust 单测（当前 31 项）
 > 「缺授权码直接 `return undefined` 导致构建崩溃」的问题），但授权校验会中断产物生成且退出码仍为 0，
 > 因此**必须以 `dist/` 是否产出为准**，不能只看退出码。发布前在 `.env.local` 补入购买的 key。
 
-前端 dev 端口：**1430**，HMR **1431**（区别于 books 项目的 1420/1421）。
+前端 dev 端口：**9002**（与 docker nginx `/console/` 代理口一致，strictPort；books 项目仍为 1420）。
 
 ---
 
@@ -50,7 +50,7 @@ cd src-tauri && cargo test    # Rust 单测（当前 31 项）
 console/
 ├── index.html                   # Vite 入口 HTML
 ├── package.json                 # 前端依赖与脚本（dev / build / preview / tauri）
-├── vite.config.ts               # Vite 配置（固定端口 1430，忽略 src-tauri）
+├── vite.config.ts               # Vite 配置（固定端口 9002，忽略 src-tauri）
 ├── tsconfig.json                # 前端 TS 配置
 ├── tsconfig.node.json
 ├── dist/                        # 前端构建输出（`frontendDist: ../dist` 指向此处）
@@ -178,5 +178,5 @@ git push origin v1.0.0
 | 前端生产构建 | `npm run build:check` | 输出 `dist/index.html` 与 `assets/*`（需 `.env.local` 授权码，见 §2 注意事项） |
 | 密钥注入自检 | 启动后看日志 | 无「本地链路密钥未配置或长度非法」`ERROR`；出现该日志说明 `EDTIB_APP_*` / `console.env` 缺失，此时所有转发请求被拒绝 |
 | Tauri 环境信息 | `npm run tauri -- info` | 正确识别 Rust / Node / CLI 版本 |
-| 开发运行 | `npm run tauri dev` | 弹出「EDTIB控制中台」窗口（1430 端口 dev server）；设置 → 检查更新页不再报 `electronAPI` 未定义 |
+| 开发运行 | `npm run tauri dev` | 弹出「EDTIB控制中台」窗口（9002 端口 dev server）；设置 → 检查更新页不再报 `electronAPI` 未定义 |
 

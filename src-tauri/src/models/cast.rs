@@ -14,14 +14,17 @@ pub enum Cast {
     /// `cast/integer.ts`（模型中以 `CastInt` 别名使用）
     Integer,
     /// `cast/integerOrNull.ts`
+    #[allow(dead_code)]
     IntegerOrNull,
     /// `cast/json.ts`
     Json,
     /// `cast/crypt.ts`
     Crypt,
     /// `cast/boolean.ts`
+    #[allow(dead_code)]
     Boolean,
     /// `cast/datetime.ts`
+    #[allow(dead_code)]
     Datetime,
 }
 
@@ -190,6 +193,7 @@ fn datetime_set(value: &Value) -> Value {
 }
 
 /// 无 cast 定义时的原样返回（等价老项目 `castType ? castType.get(...) : value`）。
+#[allow(dead_code)]
 pub fn passthrough(value: &Value) -> Value {
     value.clone()
 }

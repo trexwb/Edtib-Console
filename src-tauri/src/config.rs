@@ -221,8 +221,11 @@ pub fn production() -> &'static CryptEnv {
 }
 
 /// 老项目本地 HTTPS 服务地址（对照用：Tauri 版已由 `invoke` 取代）。
+#[allow(dead_code)]
 pub const LEGACY_SERVER_PROTOCOL: &str = "https";
+#[allow(dead_code)]
 pub const LEGACY_SERVER_HOST: &str = "localhost.edtib.com";
+#[allow(dead_code)]
 pub const LEGACY_SERVER_PORT: u16 = 64580;
 
 /// 等价 `process.env.NODE_ENV || 'production'`：

@@ -25,6 +25,7 @@ pub fn success(data: Value) -> Envelope {
 }
 
 /// 失败响应（`code: 500`，等价老项目 `error.message || 'Internal server error'`）。
+#[allow(dead_code)]
 pub fn failure(message: impl Into<String>) -> Envelope {
     Envelope {
         code: 500,
@@ -35,6 +36,7 @@ pub fn failure(message: impl Into<String>) -> Envelope {
 }
 
 /// 失败响应 + 自定义兜底数据（如 `db-get-list` 失败时返回 `{ total: 0, list: [] }`）。
+#[allow(dead_code)]
 pub fn failure_with(message: impl Into<String>, data: Value) -> Envelope {
     Envelope {
         code: 500,

@@ -132,6 +132,7 @@ impl Context {
     }
 
     /// 等价只读的 `req.data`。
+    #[allow(dead_code)]
     pub fn data(&self) -> Option<&Value> {
         self.data.as_ref()
     }

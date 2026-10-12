@@ -22,7 +22,7 @@
 | 可执行文件名 | `EDTIB控制中台`（由 productName 派生） | `edtib-console`（`mainBinaryName`，ASCII 名更利于 CI/命令行） |
 | 版本号 | 1.0.19 | 1.0.0（重新起版，老版本全部放弃） |
 | Rust crate / lib 名 | — | `edtib-console` / `edtib_console_lib` |
-| 前端 dev 端口 | 9002 | **1430**（HMR 1431），与 books 的 1420/1421 错开 |
+| 前端 dev 端口 | 9002 | **9002**（与 nginx `/console/` 代理口一致，strictPort），与 books 的 1420 错开 |
 
 > Tauri 的 `productName` 支持中文并会用于安装包与窗口标题；`mainBinaryName` 单独指定为 ASCII，
 > 避免中文可执行文件名在 Windows CI 与命令行环境下的转义问题。
@@ -148,7 +148,7 @@ Tauri 支持把任意可执行文件作为「sidecar」随包分发，理论上�
                                         │   ├── tauri.macos.conf.json / tauri.windows.conf.json
                                         │   └── build.rs
                                         ├── index.html               (前端工程平铺仓库根目录)
-                                        ├── vite.config.ts           (固定端口 1430)
+                                        ├── vite.config.ts           (固定端口 9002)
                                         ├── tsconfig.json / tsconfig.node.json
                                         ├── package.json / package-lock.json
                                         ├── src/            (Vue3 前端源码，本轮仅骨架)

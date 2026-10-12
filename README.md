@@ -9,7 +9,7 @@ edtib console 桌面端由 **Electron 迁移至 Tauri v2** 的新项目。
 - bundle identifier：`com.edtib.console`
 - 产品名：EDTIB控制中台
 - 可执行文件名：`edtib-console`
-- 前端 dev 端口：1430（HMR 1431）
+- 前端 dev 端口：9002（与 nginx /console/ 代理口一致）
 
 ## 迁移动因
 
@@ -53,7 +53,7 @@ edtib console 桌面端由 **Electron 迁移至 Tauri v2** 的新项目。
 ```bash
 npm install            # 安装前端依赖（Vue / Vite / TS）与 Tauri CLI
 
-npm run dev            # 仅启动前端 dev server（http://localhost:1430）
+npm run dev            # 仅启动前端 dev server（http://localhost:9002）
 npm run tauri dev      # 启动完整桌面应用（前端 + Rust 热重载）
 
 npm run build          # 前端类型检查 + 生产构建（输出 dist/）
@@ -70,7 +70,7 @@ console/
 ├── index.html                    # Vite 入口 HTML
 ├── package.json                  # 前端依赖与脚本（dev / build / preview / tauri）
 ├── package-lock.json
-├── vite.config.ts                # Vite 配置（固定端口 1430，忽略 src-tauri）
+├── vite.config.ts                # Vite 配置（固定端口 9002，忽略 src-tauri）
 ├── tsconfig.json                 # 前端 TS 配置
 ├── tsconfig.node.json
 ├── dist/                         # 前端构建产物（tauri.conf.json 的 frontendDist 指向此处）

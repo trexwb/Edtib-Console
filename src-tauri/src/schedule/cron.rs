@@ -151,6 +151,7 @@ fn resolve(token: &str, names: &[(&str, u32)]) -> Option<u32> {
 /// 解析完成的 cron 表达式。
 #[derive(Debug, Clone)]
 pub struct CronSpec {
+    #[allow(dead_code)]
     expression: String,
     seconds: Field,
     minutes: Field,
@@ -190,6 +191,7 @@ impl CronSpec {
     }
 
     /// 原始表达式文本（用于状态展示与去重判断）。
+    #[allow(dead_code)]
     pub fn expression(&self) -> &str {
         &self.expression
     }

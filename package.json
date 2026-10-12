@@ -26,7 +26,10 @@
     "module:update": "ncu -u --reject vite-plugin-mock --registry https://registry.npmmirror.com&&npm run module:install",
     "module:reinstall": "rimraf node_modules&&npm run module:install",
     "generate-pwa-assets": "pwa-assets-generator",
-    "template": "plop"
+    "template": "plop",
+    "version:set": "node scripts/bump-version.mjs",
+    "version:patch": "node scripts/bump-version.mjs --patch",
+    "version:check": "node scripts/check-version.mjs"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",

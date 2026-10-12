@@ -5,6 +5,7 @@
  */
 import request from '/@/utils/request'
 import requestBridge from '/@/utils/requestBridge'
+import CryptoJS from 'crypto-js'
 
 /* 获取个人开户列表 */
 export async function usersList(data: { filter?: object; sort?: string; page?: number; pageSize?: number }) {
@@ -44,6 +45,7 @@ export function usersSave(data: {
   extension?: object
   status?: number
 }) {
+  if (data.password) data.password = CryptoJS.MD5(data.password).toString()
   return request({ url: '/console/customers/usersSave', method: 'post', data })
 }
 
@@ -73,6 +75,7 @@ export function usersReviewSave(data: {
   status?: number
   remark?: string
 }) {
+  if (data.password) data.password = CryptoJS.MD5(data.password).toString()
   return request({ url: '/console/customers/usersReviewSave', method: 'post', data })
 }
 

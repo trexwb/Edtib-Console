@@ -1,20 +1,49 @@
+import { basename, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import autoprefixer from 'autoprefixer'
 import dayjs from 'dayjs'
-import { resolve } from 'path'
 import type { ConfigEnv, UserConfig } from 'vite'
 import { defineConfig, loadEnv } from 'vite'
 import { createVitePlugin, createWatch } from './library/build'
 import { dependencies, devDependencies, name, version } from './package.json'
-import { assetsDir, chunkSizeWarningLimit, cssCodeSplit, minify, open, outputHash, reportCompressedSize } from './src/config'
+import {
+  assetsDir,
+  base,
+  chunkSizeWarningLimit,
+  cssCodeSplit,
+  minify,
+  open,
+  outDir,
+  outputHash,
+  port,
+  reportCompressedSize,
+} from './src/config'
 
+// ============================================================================
+// [迁移调整] 该配置由老 Electron 项目 client/books/web/vite.config.ts 迁移而来：
+//   1. base 固定 './'：Tauri 打包后前端由 tauri://localhost 自定义协议加载，无服务器基准路径；
+//   2. 构建产物输出到项目根 dist/（tauri.conf.json -> build.frontendDist = ../dist），
+//      不再输出到 Electron 的 electron/output/view；
+//   3. dev 端口为 9002（与 nginx /console/ 代理口一致）且 strictPort（tauri.conf.json devUrl 固定）；
+//   4. build.target 按 macOS WKWebView 能力设定（es2021 + safari15）；
+//   5. 旧项目基于 rolldown-vite(vite8) 的 codeSplitting.groups 在 rollup 内核的 vite7 上不生效，
+//      改为等价的手工分包函数（声明顺序即匹配优先级，与旧语义一致）；
+//   6. 移除 rolldown 专属的 optimizeDeps.rolldownOptions。
+// ============================================================================
+const rootDir = fileURLToPath(new URL('.', import.meta.url))
+const host = process.env.TAURI_DEV_HOST
 const lastBuildTime = dayjs().format('YYYY-MM-DD HH:mm:ss')
 const info = { dependencies, devDependencies, lastBuildTime, name, version }
 
-// Tauri 使用固定端口：端口被占用时直接失败，而不是静默切换。
-// 端口与 books（1420 / HMR 1421）错开，避免两个 Tauri 项目同时开发时冲突。
-const DEV_PORT = 1430
-const HMR_PORT = 1431
-const host = process.env.TAURI_DEV_HOST
+const manualChunkGroups: [string, RegExp][] = [
+  ['element-plus', /element-plus|@element-plus[\\/]icons-vue/],
+  ['xe-utils', /xe-utils/],
+  ['vxe-table', /vxe-table/],
+  ['echarts', /echarts|vue-echarts/],
+  ['three', /three|three-stl-loader/],
+  ['vendor-core', /vue[\\/]|vue-router|pinia/],
+  ['vendor-utils', /axios|dayjs|lodash-es|crypto-js/],
+]
 
 export default defineConfig(({ mode }: ConfigEnv): UserConfig => {
   process.env['VITE_APP_UPDATE_TIME'] = info.lastBuildTime
@@ -23,50 +52,57 @@ export default defineConfig(({ mode }: ConfigEnv): UserConfig => {
   createWatch(env)
   // 仅将业务实际消费的变量注入前端（NODE_ENV + VITE_* 前缀），
   // 避免把整个 process.env（含 PATH、npm_*、密钥等服务器端变量）暴露到客户端 bundle
-  const clientEnv = Object.fromEntries(
-    Object.entries(process.env).filter(([key]) => key === 'NODE_ENV' || key.startsWith('VITE_')),
-  )
+  const clientEnv = Object.fromEntries(Object.entries(process.env).filter(([key]) => key === 'NODE_ENV' || key.startsWith('VITE_')))
 
   return {
-    // 老项目 web 由 Electron 内置 HTTPS 站点以 /console/ 二级目录托管；
-    // Tauri 由内嵌协议从根路径托管 frontendDist，故 base 固定为 '/'
-    base: '/',
+    base,
     root,
     server: {
       open,
-      // 固定 1430，与 tauri.conf.json 的 devUrl 保持一致
-      port: DEV_PORT,
+      port,
+      // [迁移调整] Tauri 使用固定端口，端口被占用时直接失败而不是静默切换
       strictPort: true,
-      host: host || false,
       cors: true,
       hmr: host
         ? {
             protocol: 'ws',
             host,
-            port: HMR_PORT,
+            port: 9002,
+            overlay: true,
           }
         : {
             overlay: true,
           },
+      host: host || '0.0.0.0',
+      proxy: {
+        '/api': {
+          // 本地开发网关（docker 网段外的宿主机直连）；gateway-dev.edtib.com 已停用
+          target: 'http://127.0.0.1:9000/',
+          changeOrigin: true,
+        },
+      },
+      allowedHosts: ['edtib_console'],
       watch: {
-        // 忽略监听 src-tauri，避免 Rust 侧编译产物触发前端热更新
+        // [迁移调整] 忽略监听 src-tauri，避免 Rust 侧编译产物触发前端热更新
         ignored: ['**/src-tauri/**'],
       },
     },
     resolve: {
       alias: {
-        '~/': `${resolve(__dirname, '.')}/`,
-        '/@/': `/${resolve(__dirname, 'src')}/`,
-        '/@vab/': `/${resolve(__dirname, 'library')}/`,
-        '/@types/': `/${resolve(__dirname, 'src/types')}/`,
+        '~/': `${rootDir}/`,
+        '/@/': `${rootDir}/src/`,
+        '/@vab/': `${rootDir}/library/`,
+        '/@types/': `${rootDir}/src/types/`,
       },
     },
     build: {
+      // [迁移调整] macOS WKWebView 执行能力基线（Tauri v2 桌面端：macOS 10.15+ / Safari 15 内核以上）
+      target: ['es2021', 'safari15'],
       assetsDir,
       chunkSizeWarningLimit,
       cssCodeSplit,
-      // Tauri 前端产物目录（tauri.conf.json build.frontendDist = ../dist）
-      outDir: resolve(__dirname, 'dist'),
+      outDir: resolve(rootDir, outDir),
+      emptyOutDir: true,
       reportCompressedSize,
       rollupOptions: {
         onwarn: () => {
@@ -76,46 +112,23 @@ export default defineConfig(({ mode }: ConfigEnv): UserConfig => {
           chunkFileNames: outputHash ? 'static/js/[name]-[hash].js' : 'static/js/[name].js',
           entryFileNames: outputHash ? 'static/js/[name]-[hash].js' : 'static/js/[name].js',
           assetFileNames: outputHash ? 'static/[ext]/[name]-[hash].[ext]' : 'static/[ext]/[name].[ext]',
-          // 分包策略：将大型库单独打包，减少首屏 bundle 体积
           // 桌面端（TAURI_BUILD）走 singlefile 内联，codeSplitting=false 与 manualChunks 互斥，故关闭
-          manualChunks: process.env.TAURI_BUILD ? undefined : (id) => {
-            // Element Plus 相关
-            if (id.includes('element-plus') || id.includes('@element-plus/icons-vue')) {
-              return 'element-plus'
+          manualChunks: process.env.TAURI_BUILD ? undefined : function (id: string) {
+            if (!id.includes('node_modules')) return
+            for (const [chunkName, test] of manualChunkGroups) {
+              if (test.test(id)) return chunkName
             }
-            // xe-utils（vxe-table 依赖库，必须在前）
-            if (id.includes('xe-utils')) {
-              return 'xe-utils'
-            }
-            // VxeTable 表格组件
-            if (id.includes('vxe-table')) {
-              return 'vxe-table'
-            }
-            // ECharts 图表库
-            if (id.includes('echarts') || id.includes('vue-echarts')) {
-              return 'echarts'
-            }
-            // Vue 相关（核心）
-            if (id.includes('vue/') || id.includes('vue-router') || id.includes('pinia')) {
-              return 'vendor-core'
-            }
-            // 常用工具库
-            if (id.includes('axios') || id.includes('dayjs') || id.includes('lodash-es') || id.includes('crypto-js')) {
-              return 'vendor-utils'
-            }
-            // 其他 node_modules
-            if (id.includes('node_modules')) {
-              return 'vendor'
-            }
+            return 'vendor'
           },
         },
       },
       minify,
-    },
-    // minify 为 esbuild 时 terserOptions 不生效，console/debugger 须在此配置 drop；
-    // 仅生产构建移除，开发环境保留调试能力
-    esbuild: {
-      drop: mode === 'production' ? ['console', 'debugger'] : [],
+      terserOptions: {
+        compress: {
+          drop_console: true, // 移除 console.log 以减小生产环境构建包大小
+          drop_debugger: true,
+        },
+      },
     },
     css: {
       postcss: {
@@ -133,8 +146,8 @@ export default defineConfig(({ mode }: ConfigEnv): UserConfig => {
       },
       preprocessorOptions: {
         scss: {
+          // [迁移调整] ESM 配置下 require 不可用，改为顶部静态导入 basename
           additionalData(content: string, loaderContext: string) {
-            const { basename } = require('path')
             return ['variables.scss'].includes(basename(loaderContext)) ? content : `@use "~/library/styles/variables.scss" as *;${content}`
           },
         },
@@ -142,18 +155,10 @@ export default defineConfig(({ mode }: ConfigEnv): UserConfig => {
       devSourcemap: true,
     },
     plugins: createVitePlugin(env),
+    assetsInclude: ['**/*.stl'],
     define: {
       'process.env': clientEnv,
     },
-    optimizeDeps: {
-      rolldownOptions: {
-        transform: {
-          // Node.js global to enable tree shaking of the `process` global in node modules that depend on it.
-          define: {
-            global: 'undefined',
-          },
-        },
-      },
-    },
   }
 })
+

@@ -154,7 +154,7 @@
 
 | 老 | 老行为 | 新 | 状态 |
 |---|---|---|---|
-| `electron/src/index.ts` HTTPS `64580` + `/static` 静态 + SPA fallback | 托管渲染层页面、转发 gateway | Tauri `frontendDist` / `devUrl`（dev 端口 1430/1431），无本地 HTTP 端口 | ❌（有意） |
+| `electron/src/index.ts` HTTPS `64580` + `/static` 静态 + SPA fallback | 托管渲染层页面、转发 gateway | Tauri `frontendDist` / `devUrl`（dev 端口 9002），无本地 HTTP 端口 | ❌（有意） |
 | `view/index.html` | 承载渲染层入口 | Tauri 直接加载前端 `dist` | ❌（有意） |
 
 ### 2.10 桌面外壳（不可迁移项）
