@@ -169,7 +169,7 @@ Tauri 支持把任意可执行文件作为「sidecar」随包分发，理论上�
 | `electron/src/controller/request.ts` | `src-tauri/src/proxy/request.rs` + `commands/proxy.rs` | 重加密 → `x-sign` → reqwest 转发 → 响应解密 → 信封 |
 | `electron/src/config/db.ts`、`knexfile.ts` | `src-tauri/src/db/mod.rs` | 数据库连接与迁移执行器 |
 | `electron/src/config/index.ts` | `src-tauri/src/config.rs` + `state.rs` + `commands/app.rs` | 运行时配置与凭证：`cryptSecrets()` → `EDTIB_*` 环境变量 / `<AppData>/console.env`（源码零密钥）；托管状态 + `app_info` 自检命令 |
-| `electron/src/config/cryptTool.ts` | `src-tauri/src/crypt.rs` | `md5` / `sha256` / `aes-256-cbc` + hex，解密自适应 `iv:cipher` 与固定 IV 两种历史格式；`defaultKey` 改由 `EDTIB_FIELD_CRYPT_*` 提供 |
+| `electron/src/config/cryptTool.ts` | `src-tauri/src/crypt.rs` | `md5` / `sha256` / `aes-256-cbc` + hex，解密自适应 `iv:cipher` 与固定 IV 两种历史格式；`defaultKey` 改由 `TAURI_FIELD_CRYPT_*` 提供 |
 | `electron/src/model/*.ts` | `src-tauri/src/models/` + `db/` + `commands/*.rs` | 数据模型 → 12 表白名单注册表 + 查询执行器 + 命令出入参 |
 | `electron/src/migrations/*.ts`（18 个 Knex 迁移） | `src-tauri/migrations/*.sql`（`0001_init.sql` ~ `0019_servers.sql`） | 迁移脚本翻译为纯 SQL，逐表对应 |
 | `electron/src/seeds/*.ts` | `src-tauri/src/db/seed.rs` | 种子数据随 `Database::open` 执行，幂等判据为「业务表空」 |

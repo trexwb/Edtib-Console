@@ -48,6 +48,7 @@ pub(crate) fn resolve_input(app: &AppHandle, input: &str, empty_as_base: bool) -
     if raw.is_absolute() {
         let allowed = [base.clone(), paths::documents_dir(app)];
         if allowed.iter().any(|dir| raw.starts_with(dir)) {
+            ensure_not_protected(raw)?;
             return Ok(raw.to_path_buf());
         }
         return Err(AppError::other(format!(
@@ -55,7 +56,45 @@ pub(crate) fn resolve_input(app: &AppHandle, input: &str, empty_as_base: bool) -
         )));
     }
 
-    paths::resolve(&base, trimmed)
+    let resolved = paths::resolve(&base, trimmed)?;
+    ensure_not_protected(&resolved)?;
+    Ok(resolved)
+}
+
+/// 密钥文件与本地库文件禁止经 `fs_*` 命令读写。
+///
+/// 应用数据目录本身是 `fs_*` 的合法作用域（缓存、导出件都放在这里），
+/// 但 `console.env` 装着 `TAURI_LINK_*` / `TAURI_APP_*`、`*.db` 装着解密后即可用的会话与凭证，
+/// 渲染层（以及任何拿到 webview 执行能力的注入）读一次就等同于拿到全部密钥，
+/// 写一次则可以在下次启动时替换凭证。业务读写从不触碰这些文件名，因此直接拒绝。
+fn ensure_not_protected(path: &Path) -> AppResult<()> {
+    let blocked = |name: &str| {
+        let lower = name.to_lowercase();
+        lower.ends_with(".env")
+            || lower.ends_with(".db")
+            || lower.ends_with(".db-wal")
+            || lower.ends_with(".db-shm")
+            || lower.ends_with(".sqlcipher-key")
+            || lower == ".sqlcipher-key"
+    };
+    let hit = path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .filter(|name| blocked(name))
+        .map(str::to_string)
+        .or_else(|| {
+            path.parent()
+                .and_then(|parent| parent.file_name())
+                .and_then(|name| name.to_str())
+                .filter(|name| blocked(name))
+                .map(str::to_string)
+        });
+    match hit {
+        Some(name) => Err(AppError::other(format!(
+            "该文件由系统托管，禁止通过 fs_* 读写：{name}"
+        ))),
+        None => Ok(()),
+    }
 }
 
 /// fs_read_file：读取文本文件；文件不存在时返回 `data: null`（老 `fs-read-file` 的约定，

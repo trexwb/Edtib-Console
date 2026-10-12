@@ -1,14 +1,15 @@
 /* ═══════════════════════════════════════════════════════════════════
-   edtib-console — 本地构建签名环境注入（tauri:build 包装器）
+   Edtib 桌面端 — 本地构建签名环境注入（tauri:build 包装器）
    ───────────────────────────────────────────────────────────────────
-   与 lockPass/scripts/with-updater-key.mjs 同源同规则。
+   [框架统一] books / console 共用同一份脚本：项目名一律从 package.json
+   name 派生（edtib-books → EdtibBooks），禁止在本文件写死项目名。
    背景：bundle.createUpdaterArtifacts: true + 公钥内嵌，打包时 Tauri 要求
    签名私钥。CI 经 GitHub Secrets 注入（TAURI_SIGNING_PRIVATE_KEY）；本地
    未设置环境变量会报 "A public key has been found, but no private key"。
    本包装器规则：
      1) 已设置 TAURI_SIGNING_PRIVATE_KEY（CI 或手动内联）→ 原样透传
      2) 未设置 → 按 TAURI_SIGNING_PRIVATE_KEY_PATH（.env.local / 手动
-        export）与 ~/.tauri/EdtibConsole-updater.key 顺序找到私钥文件，
+        export）与 ~/.tauri/<PascalName>-updater.key 顺序找到私钥文件，
         读入为内联值；密码从同名 env 取 TAURI_SIGNING_PRIVATE_KEY_PASSWORD
      3) 都没有 → 原样透传并打印指引（由 Tauri 给出明确的缺钥报错）
    ⚠️ 关键事实：tauri build 的打包签名只认 TAURI_SIGNING_PRIVATE_KEY
@@ -23,10 +24,15 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
-const KEY_PATH = path.join(os.homedir(), '.tauri', 'EdtibConsole-updater.key')
+// edtib-books → EdtibBooks（私钥与 ~/.tauri env 文件命名沿用该 Pascal 名）
+const PASCAL_NAME = JSON.parse(readFileSync(path.join(ROOT, 'package.json'), 'utf8'))
+  .name.split(/[-_]/)
+  .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+  .join('')
+const KEY_PATH = path.join(os.homedir(), '.tauri', `${PASCAL_NAME}-updater.key`)
 const ENV_FILES = [
-  path.join(ROOT, '.env.local'),                                  // 项目根（优先）
-  path.join(os.homedir(), '.tauri', 'EdtibConsole.env'),          // ~/.tauri 统一 env
+  path.join(ROOT, '.env.local'),                                   // 项目根（优先）
+  path.join(os.homedir(), '.tauri', `${PASCAL_NAME}.env`),          // ~/.tauri 统一 env
 ]
 
 // 解析极简 dotenv（支持 export 前缀 / 引号值 / 注释 / alias 行忽略）；

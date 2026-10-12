@@ -30,9 +30,6 @@ pub const SUPPORTED_TASKS: [&str; 3] = ["heartbeatTask", "updateTask", "downCrtF
 const CERT_URL: &str = "https://static.edtib.com/update/cert/localhost-crt.txt";
 const KEY_URL: &str = "https://static.edtib.com/update/cert/localhost-key.txt";
 
-/// 老 `heartbeatTask.ts` 的兜底网关地址（`app_url` 缺失时使用）。
-const FALLBACK_APP_URL: &str = "https://gateway.edtib.com";
-
 /// 执行单个任务（等价老 `import('../schedule/components/<require>.js')` 后调用 `default`）。
 pub async fn run(app: &AppHandle, require: &str) -> Result<Value, String> {
     match require {
@@ -48,10 +45,21 @@ pub async fn run(app: &AppHandle, require: &str) -> Result<Value, String> {
 /// 老实现用 `try/catch` 吞掉全部异常并返回 `true`（心跳失败不阻塞调度），
 /// 这里保持同样口径：网络失败只记日志，返回结构化结果供观测。
 pub async fn heartbeat(app: &AppHandle) -> Result<Value, String> {
-    let app_url = secret_field(app, "app_url").unwrap_or_else(|| FALLBACK_APP_URL.to_string());
-    let (protocol, host) =
-        request::split_origin(&app_url).ok_or_else(|| format!("Invalid URL: {app_url}"))?;
-    let target_url = format!("{protocol}//{host}/heartbeat");
+    // 心跳与业务转发共用同一套受信地址判定：表内 `app_url` 可被 `db_update` 改写，
+    // 老实现的 `FALLBACK_APP_URL` 又会让开发实例静默打正式网关
+    let row_app_url = secret_field(app, "app_url").unwrap_or_default();
+    let origin = match request::pin_origin(
+        &crate::config::gateway().app_url,
+        Some(&Value::String(row_app_url)),
+    ) {
+        Ok(origin) => origin,
+        // 老实现吞掉全部异常并返回 true：地址不可信时同样只记日志、不阻塞调度
+        Err(err) => {
+            log::warn!("心跳地址不可信或缺失，已跳过本轮心跳: {err}");
+            return Ok(json!({ "url": Value::Null, "status": 0 }));
+        }
+    };
+    let target_url = format!("{}//{}/heartbeat", origin.0, origin.1);
 
     let client = request::client().map_err(|err| err.to_string())?;
     match client

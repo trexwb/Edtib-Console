@@ -100,7 +100,7 @@
 |---|---|---|---|
 | `cast/boolean.ts`、`integer.ts`、`integerOrNull.ts`、`string.ts`、`json.ts`、`datetime.ts` | 字段类型转换（含 JS 真值与时间格式语义） | `models/cast.rs` + `js.rs`（`js_truthy` / `parse_int` / `format_datetime` 等 JS 语义等价实现） | ✅ |
 | `cast/crypt.ts` | 对 `app_secret` / `app_iv` 落库加密 | `crypt.rs` + `models/cast.rs` 调用点 | ✅ |
-| `config/cryptTool.ts` | `md5` / `sha256` / `aes-256-cbc`，固定 `defaultKey`（`secret`/`iv`）明文写在源码 | `crypt.rs` + `config.rs`：`defaultKey` 改为 `EDTIB_FIELD_CRYPT_SECRET` / `EDTIB_FIELD_CRYPT_IV` 读取，未配置时由 `EDTIB_APP_SECRET` 做 `sha256` 派生（`key` 取 32 hex、`iv` 取 16 hex），**源码内不含任何密钥常量**；`aes-256-cbc` + hex 与 `md5` / `sha256` 算法逐字等价 | ⚠️ |
+| `config/cryptTool.ts` | `md5` / `sha256` / `aes-256-cbc`，固定 `defaultKey`（`secret`/`iv`）明文写在源码 | `crypt.rs` + `config.rs`：`defaultKey` 改为 `TAURI_FIELD_CRYPT_SECRET` / `TAURI_FIELD_CRYPT_IV` 读取，未配置时由 `TAURI_APP_SECRET` 做 `sha256` 派生（`key` 取 32 hex、`iv` 取 16 hex），**源码内不含任何密钥常量**；`aes-256-cbc` + hex 与 `md5` / `sha256` 算法逐字等价 | ⚠️ |
 | —（老无对应） | — | `config.rs::init()` + `console.env` 密钥文件加载：打包态 macOS 不继承 shell 环境变量，密钥改由 `<AppData>/console.env`（或 `EDTIB_ENV_FILE` 指定路径）注入；进程环境变量优先于文件，缺失时 `missing_env()` 打日志并**失败关闭**（所有 `proxy_request` 直接拒绝） | ✅ |
 
 ### 2.6 schedule 定时任务
@@ -185,7 +185,7 @@
 | **D-10** | 桌面外壳差异 | **不可迁移** | 闪屏、无边框窗口、菜单栏隐藏、忽略证书错误等 Electron 特有能力 |
 | **D-11** | SQLite 定位差异 | 有意 | 新架构用 `rusqlite (bundled)` 作业务库（替代 Express + Knex + SQLite 本地服务），**不作为渲染层业务缓存**（与 `docs/offline-and-proxy-architecture.md` 中未拍板分叉项 D1 相关） |
 | **D-12** | `preload` / `electronAPI` 注入 | **已闭环（2026-10-01）** | 老 `preload.ts` 已删除，改由渲染层 `src/bridge/index.ts::setupBridge()` 在 Tauri 宿主下挂载 `window.electronAPI`（`main.ts` 中先于 `createApp` 调用），类型由 `src/bridge/types.ts` 单一来源提供，`src/types/electron.d.ts` 仅做全局声明转发；浏览器宿主不注入，`requestBridge.ts` 自动退回 HTTP。命令未注册 / 返回非预期结构时逐调用点降级，不阻断业务 |
-| **D-13** | 密钥改环境变量注入 | 有意（安全红线） | 源码不再内置 `DEFAULT_SECRET` / `DEFAULT_IV` 与网关凭证；本地链路凭证读 `EDTIB_APP_ID` / `EDTIB_APP_SECRET` / `EDTIB_APP_IV`，字段级密钥读 `EDTIB_FIELD_CRYPT_SECRET` / `EDTIB_FIELD_CRYPT_IV`（缺省由 `EDTIB_APP_SECRET` 派生），网关凭证读 `EDTIB_DEV_*` / `EDTIB_PROD_*`。缺失时**失败关闭**（`proxy_request` 直接拒绝并打日志）。打包态环境变量注入方式：`<AppData>/console.env` 或 `EDTIB_ENV_FILE` 指定路径，详见 `.env.example` |
+| **D-13** | 密钥改环境变量注入 | 有意（安全红线） | 源码不再内置 `DEFAULT_SECRET` / `DEFAULT_IV` 与网关凭证；本地链路凭证读 `TAURI_APP_ID` / `TAURI_APP_SECRET` / `TAURI_APP_IV`，字段级密钥读 `TAURI_FIELD_CRYPT_SECRET` / `TAURI_FIELD_CRYPT_IV`（缺省由 `TAURI_APP_SECRET` 派生），网关凭证读 `EDTIB_DEV_*` / `EDTIB_PROD_*`。缺失时**失败关闭**（`proxy_request` 直接拒绝并打日志）。打包态环境变量注入方式：`<AppData>/console.env` 或 `EDTIB_ENV_FILE` 指定路径，详见 `.env.example` |
 | **D-14** | 老 `cryptSecrets()` 内置默认值移除 | 有意（安全红线） | 老项目在 `config/cryptTool.ts` / `secrets` 兜底里硬编码 dev / prod 网关凭证与登录页默认账号密码；新项目全部改环境变量，登录页与 `VabLock` 锁屏不再预填任何真实账号密码（`src/views/login/index.vue`、`library/components/VabLock/index.vue`） |
 | **D-15** | 离线登录缓存明文落盘 | 待评估 | `src/api/authorize.ts` 的 `getUserInfo()` 会把登录态写入 `user/login-cache.json`（AppData 内明文，与老 Electron 实现一致）。`fs-*` 命令闭环后该路径真正生效，风险由「理论」变「实际」。建议后续改走 macOS Keychain（参考 `books/src-tauri/src/keychain.rs`）或在写入前用字段级密钥加密，需产品侧确认是否允许离线首屏 |
 
@@ -213,6 +213,6 @@
 - **不可迁移**：`handler.script`（D-06）、Electron 桌面外壳特性（D-10）。
 - **待处理（需项目负责人拍板）**：
   1. 离线登录缓存明文落盘（D-15）。
-  2. 商业模板授权码缺失导致 `npm run build` 无法产出 `dist/`（§四），发布前必须在 `.env.local` 补齐，并同时提供 `EDTIB_APP_*` / `EDTIB_PROD_APP_*` 密钥文件（`console.env`）与 `VITE_APP_*`，两套值必须一致，否则代理链路验签直接 4016000305。
+  2. 商业模板授权码缺失导致 `npm run build` 无法产出 `dist/`（§四），发布前必须在 `.env.local` 补齐，并同时提供 `TAURI_APP_*` / `EDTIB_PROD_APP_*` 密钥文件（`console.env`）与 `VITE_APP_*`，两套值必须一致，否则代理链路验签直接 4016000305。
   3. `src/services/SyncService.ts` 为未接入的死模块且存在解包错误（`existing?.data` 与 `db_find_one` 返回的信封结构不符）、表名映射与默认同步表集合无交集，需确认是否随离线方案一并落地。
   4. 登录前对密码做 `md5` 后再送网关（`src/api/authorize.ts`）是既有传输契约，改动需与 gateway 同步评估（见 gateway 修复报告 MD5 迁移方案）。

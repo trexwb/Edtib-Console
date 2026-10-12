@@ -53,8 +53,8 @@ edtib console 桌面端由 **Electron 迁移至 Tauri v2** 的新项目。
 ```bash
 npm install            # 安装前端依赖（Vue / Vite / TS）与 Tauri CLI
 
-npm run dev            # 仅启动前端 dev server（http://localhost:9002）
-npm run tauri dev      # 启动完整桌面应用（前端 + Rust 热重载）
+npm run dev            # 仅启动前端 dev server（http://localhost:9002；.env.development＝浏览器直连测试网关 gateway-dev.edtib.com）
+npm run tauri:dev      # 启动完整桌面应用（前端经 dev:test 加载 .env.test＝本地链路密钥，Rust 侧由 with-tauri-env.mjs 注入 TAURI_LINK_*/TAURI_APP_*，出站请求 TAURI_APP_BASE_URL 对应的网关 + Rust 热重载）
 
 npm run build          # 前端类型检查 + 生产构建（输出 dist/）
 npm run tauri build    # 打包安装包（产物见 src-tauri/target/release/bundle/）

@@ -11,13 +11,16 @@ use crate::js;
 
 use super::{now_secs, Context, ProxyEnvelope, ProxyResponse, TOKEN_TTL_SECS};
 
+/// 本地链路时间戳允许的向前时钟偏移（秒）。
+const CLOCK_SKEW_SECS: i64 = 60;
+
 /// 等价 `middleware.token`：全部校验通过返回 `None`，否则返回已构建的错误响应。
 ///
 /// 校验顺序与错误码与老实现完全一致：
 /// 4016000301（appId/appSecret 为空）→ 4016000306（nonce 非法）
 /// → 4016000302（过期）→ 4016000303（appId 不匹配）→ 4016000305（签名不匹配）。
 ///
-/// 凭证由调用方注入（`config::app_id()` / `config::app_secret()` 读环境变量），
+/// 凭证由调用方注入（`config::link_app_id()` / `config::link_app_secret()` 读环境变量），
 /// 便于单测且不把密钥材料编进源码；本地密钥未配置时**失败关闭**，
 /// 否则空密钥也能算出合法签名，鉴权形同虚设。
 pub fn token(
@@ -33,7 +36,7 @@ pub fn token(
     if expected_app_id.is_empty() || expected_app_secret.is_empty() {
         return Some(ctx.handle_error(
             500,
-            Some("本地鉴权密钥未配置：请设置 EDTIB_APP_ID / EDTIB_APP_SECRET / EDTIB_APP_IV".to_string()),
+            Some("本地鉴权密钥未配置：请设置 TAURI_LINK_ID / TAURI_LINK_SECRET / TAURI_LINK_IV".to_string()),
         ));
     }
 
@@ -63,6 +66,15 @@ pub fn token(
     // 等价 `timeStamp < Math.floor(Date.now() / 1000) - TOKEN_TIME`
     if time_stamp_value < now_secs() - TOKEN_TTL_SECS as i64 {
         return Some(ctx.handle_error(4016000302, Some("appSecret expiration".to_string())));
+    }
+
+    // 新增上界：老实现只比下界，攻击者可自选「未来时间戳」让凭证永不过期；
+    // 允许 60s 时钟偏移，超出即视为非法（本机时钟异常时前端会立刻收到明确错误码）
+    if time_stamp_value > now_secs() + CLOCK_SKEW_SECS {
+        return Some(ctx.handle_error(
+            4016000302,
+            Some("appSecret timestamp is in the future".to_string()),
+        ));
     }
 
     if expected_app_id != app_id {
@@ -128,9 +140,11 @@ pub fn respond(ctx: &Context) -> ProxyResponse {
 
 /// 等价老实现：`cryptTool.encrypt(responseData, serverConfig.appSecret, serverConfig.appIv)`
 /// → 成功写 `result.encryptedData`；无密钥或失败写 `result.data`（明文兜底）。
+///
+/// 回包面向的是本地前端，密钥取「本地链路对」（`TAURI_LINK_*`，口径同 `VITE_APP_*`）。
 fn encrypt_data(envelope: &mut ProxyEnvelope, value: &Value) {
-    let key = config::app_secret();
-    let iv = config::app_iv();
+    let key = config::link_app_secret();
+    let iv = config::link_app_iv();
 
     if !key.is_empty() && !iv.is_empty() {
         if let Some(encrypted) = crypt::encrypt_iv_prefixed(value, key) {

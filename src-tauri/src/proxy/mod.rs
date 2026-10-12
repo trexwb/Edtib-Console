@@ -176,7 +176,12 @@ pub async fn handle(app: tauri::AppHandle, request: ProxyRequest) -> ProxyRespon
 
     // 1) middleware.token：鉴权未通过时直接返回错误信封
     if let Some(response) =
-        middleware::token(&mut ctx, &request.headers, crate::config::app_id(), crate::config::app_secret())
+        middleware::token(
+            &mut ctx,
+            &request.headers,
+            crate::config::link_app_id(),
+            crate::config::link_app_secret(),
+        )
     {
         return response;
     }

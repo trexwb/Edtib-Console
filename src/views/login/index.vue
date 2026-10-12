@@ -2,8 +2,8 @@
  * @Author: trexwb
  * @Date: 2023-11-14 11:28:18
  * @LastEditors: ${git_name}
- * @LastEditTime: 2026-04-01 19:21:26
- * @FilePath: /console/web/src/views/login/index.vue
+ * @LastEditTime: 2026-10-12 13:57:37
+ * @FilePath: /gateway/Users/wbtrex/website/localServer/node/edtib/console/src/views/login/index.vue
  * @Description: 
  * 一花一世界，一叶一如来
  * Copyright (c) 2024 by 杭州大美, All Rights Reserved. 
@@ -118,8 +118,8 @@ const loginFormData = getStorage('loginFormData') || {}
 const form = ref<any>(
   Object.assign(
     {
-      username: loginFormData['username'] || '',
-      password: '',
+      username: loginFormData['username'] || 'root',
+      password: '6Z9SV3QBX8kIndeY',
       verificationCode: '',
     },
     loginFormData

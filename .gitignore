@@ -70,6 +70,9 @@ coverage/
 .env.stage
 .env.production
 *.local
+# 运行时生成的密钥文件（含生产 TAURI_APP_*/TAURI_LINK_*，严禁入库；无点前缀不被 .env* 覆盖）
+books.env
+console.env
 
 # IDE / Editor
 .vscode/

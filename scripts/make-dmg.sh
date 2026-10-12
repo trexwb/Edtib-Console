@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # ═══════════════════════════════════════════════════════════════════
-# edtib-console — 可靠的 macOS .dmg 生成（不依赖 osascript / Finder / node）
+# Edtib 桌面端 — 可靠的 macOS .dmg 生成（不依赖 osascript / Finder / node）
+# [框架统一] 与 books 为同一份代码（应用名/版本均从 tauri.conf.json 派生），改动需双侧同步
 #
 # Tauri 自带的 create-dmg 末尾要用 AppleScript 美化窗口，在无 GUI /
 # 无 Finder 自动化授权的环境（如 CI、远程、部分本地终端）会失败。

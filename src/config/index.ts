@@ -17,6 +17,7 @@ export default config
 
 export const {
   abbreviation,
+  allowedHosts,
   assetsDir,
   authentication,
   base,

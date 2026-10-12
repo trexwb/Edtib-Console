@@ -1,7 +1,7 @@
 /**
  * @description 导出cli配置，以下所有配置修改需要重启项目
  */
-export const cliConfig: { [key: string]: string | number | boolean } = {
+export const cliConfig: { [key: string]: string | number | boolean | string[] } = {
   // hash模式时在不确定二级目录名称的情况下建议使用""或"./"来代表相对路径
   // history模式默认使用"/"或"/二级目录/"，只有hash时base可以为空，如果您配置了history模式那么此项不可为空！
   base: process.env['NODE_ENV'] == 'development' ? '/console/' : '/',
@@ -10,7 +10,11 @@ export const cliConfig: { [key: string]: string | number | boolean } = {
   // 放置生成的静态资源 (js、css、img、fonts) 的目录。
   assetsDir: 'static',
   // 开发环境端口号
+  // [迁移调整] 与 docker nginx `/console/` 代理口一致（tauri.conf.json -> build.devUrl 同步固定）
   port: 9002,
+  // [框架统一] vite dev server 允许的额外主机名（docker nginx 代理转发时使用）；
+  // 与 books 为同一份框架代码，此处为两项目唯一差异点之一，改动需双侧同步
+  allowedHosts: ['edtib_console'],
   // pwa
   pwa: false,
   // build时规定触发警告的 chunk 大小。（以 kbs 为单位）

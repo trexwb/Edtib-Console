@@ -1,19 +1,24 @@
-//! 应用配置：本地代理链路凭证与网关凭证。
+//! 应用配置：本地链路凭证与出站网关凭证。
 //!
 //! 安全约定（对齐 AGENTS.md §6.3）：**源码不内置任何密钥**，凭证一律来自环境变量，
-//! 由 `.env` / 打包脚本 / CI 注入。缺失时按「失败关闭」处理（鉴权直接拒绝），
-//! 而不是回退到某个内置默认值。
+//! 由 `.env.test` / `.env.production`（经 `scripts/with-tauri-env.mjs` 注入进程）或
+//! 密钥文件注入。缺失时按「失败关闭」处理（鉴权直接拒绝），而不是回退到某个内置默认值。
 //!
 //! | 环境变量 | 含义 | 对端口径 |
 //! |---|---|---|
-//! | `EDTIB_APP_ID` | 本地链路 appId | 前端 `VITE_APP_ID` |
-//! | `EDTIB_APP_SECRET` | 本地链路 appSecret（AES-256 密钥，32 字符） | 前端 `VITE_APP_SECRET` |
-//! | `EDTIB_APP_IV` | 本地链路 appIv（16 字符）：解密老格式固定 IV 密文，同时是「回包是否加密」的开关 | 老前端 `VITE_APP_IV`（新前端请求改用随机 IV，格式 `iv(hex):密文(hex)`） |
-//! | `EDTIB_FIELD_CRYPT_SECRET` / `EDTIB_FIELD_CRYPT_IV` | 本地库字段级加密密钥（缺省由 `EDTIB_APP_SECRET` 派生） | — |
-//! | `EDTIB_DEV_APP_ID` / `_APP_SECRET` / `_APP_IV` / `_APP_URL` | 开发环境网关凭证 | `secrets` 表缺省兜底 |
-//! | `EDTIB_PROD_APP_ID` / `_APP_SECRET` / `_APP_IV` / `_APP_URL` | 生产环境网关凭证 | `secrets` 表缺省兜底 |
+//! | `TAURI_LINK_ID` | 本地链路 appId（前端 ↔ Tauri 本地服务） | 前端 `VITE_APP_ID` |
+//! | `TAURI_LINK_SECRET` | 本地链路 appSecret（AES-256 密钥，32 字符） | 前端 `VITE_APP_SECRET` |
+//! | `TAURI_LINK_IV` | 本地链路 appIv（16 字符）：解密老格式固定 IV 密文，同时是「回包是否加密」的开关 | 老前端 `VITE_APP_IV`（新前端请求改用随机 IV，格式 `iv(hex):密文(hex)`） |
+//! | `TAURI_FIELD_CRYPT_SECRET` / `TAURI_FIELD_CRYPT_IV` | 本地库字段级加密密钥（缺省由 `TAURI_LINK_SECRET` 派生） | — |
+//! | `TAURI_APP_ID` / `_APP_SECRET` / `_APP_IV` / `_APP_BASE_URL` | tauri http 服务**出站调用后端**的网关凭证与服务地址 | `secrets` 表缺省兜底 |
 //!
 //! 说明：Tauri 版不再启动本地 HTTPS 服务，`LEGACY_SERVER_*` 仅作对照保留，不参与运行时逻辑。
+//!
+//! 前缀约定：`TAURI_*` = 桌面端（Tauri Rust 进程）使用的密钥，允许存放于密钥文件；
+//! 其中 `TAURI_LINK_*` 为本地链路对（必须与同环境 `.env.test` / `.env.production` 的
+//! `VITE_APP_*` 同一对，否则 4016000305），`TAURI_APP_*` 为出站网关凭证
+//! （正式口径为本地 `secrets` 表加密存储，环境变量仅作缺省兜底）。
+//! 老 `EDTIB_DEV_* / EDTIB_PROD_*` 双环境网关键已由「按环境文件选一套 `TAURI_APP_*`」取代。
 //!
 //! 注入方式（按优先级）：进程环境变量 > 密钥文件。
 //! 密钥文件默认读 `<AppData>/console.env`，可用 `EDTIB_ENV_FILE` 指定绝对路径；
@@ -24,7 +29,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::OnceLock;
 
-/// 单个环境的网关凭证（等价老 `cryptSecrets()[env]`）。
+/// 出站网关凭证（`secrets` 表缺省兜底；等价老 `cryptSecrets()[env]`）。
 #[derive(Debug, Clone)]
 pub struct CryptEnv {
     pub app_id: String,
@@ -122,35 +127,34 @@ fn cached(slot: &'static OnceLock<String>, name: &str) -> &'static str {
     slot.get_or_init(|| env_var(name)).as_str()
 }
 
-static LOCAL_APP_ID: OnceLock<String> = OnceLock::new();
-static LOCAL_APP_SECRET: OnceLock<String> = OnceLock::new();
-static LOCAL_APP_IV: OnceLock<String> = OnceLock::new();
+static LINK_APP_ID: OnceLock<String> = OnceLock::new();
+static LINK_APP_SECRET: OnceLock<String> = OnceLock::new();
+static LINK_APP_IV: OnceLock<String> = OnceLock::new();
 static FIELD_CRYPT_SECRET: OnceLock<String> = OnceLock::new();
 static FIELD_CRYPT_IV: OnceLock<String> = OnceLock::new();
-static DEVELOPMENT: OnceLock<CryptEnv> = OnceLock::new();
-static PRODUCTION: OnceLock<CryptEnv> = OnceLock::new();
+static GATEWAY: OnceLock<CryptEnv> = OnceLock::new();
 
-/// 等价 `cryptSecrets().appId`：本地链路鉴权 appId。
-pub fn app_id() -> &'static str {
-    cached(&LOCAL_APP_ID, "EDTIB_APP_ID")
+/// 本地链路鉴权 appId（前端 ↔ Tauri，口径同前端 `VITE_APP_ID`）。
+pub fn link_app_id() -> &'static str {
+    cached(&LINK_APP_ID, "TAURI_LINK_ID")
 }
 
-/// 等价 `cryptSecrets().appSecret`：前端与本地代理链路共用的对称密钥。
-pub fn app_secret() -> &'static str {
-    cached(&LOCAL_APP_SECRET, "EDTIB_APP_SECRET")
+/// 本地链路对称密钥（前端 body 加密与代理鉴权共用，口径同 `VITE_APP_SECRET`）。
+pub fn link_app_secret() -> &'static str {
+    cached(&LINK_APP_SECRET, "TAURI_LINK_SECRET")
 }
 
-/// 等价 `cryptSecrets().appIv`。
-pub fn app_iv() -> &'static str {
-    cached(&LOCAL_APP_IV, "EDTIB_APP_IV")
+/// 本地链路 IV（口径同老前端 `VITE_APP_IV`）：仅用于解密老格式固定 IV 密文。
+pub fn link_app_iv() -> &'static str {
+    cached(&LINK_APP_IV, "TAURI_LINK_IV")
 }
 
 /// 本地库字段级加密密钥（等价 `cryptTool.defaultKey.secret`）。
-/// 未单独配置时由 `EDTIB_APP_SECRET` 派生，避免同一份密钥材料在源码中出现两次。
+/// 未单独配置时由 `TAURI_LINK_SECRET` 派生，避免同一份密钥材料在源码中出现两次。
 pub fn field_crypt_secret() -> &'static str {
     FIELD_CRYPT_SECRET
         .get_or_init(|| {
-            let configured = env_var("EDTIB_FIELD_CRYPT_SECRET");
+            let configured = env_var("TAURI_FIELD_CRYPT_SECRET");
             if configured.is_empty() {
                 derived("key", 32)
             } else {
@@ -164,7 +168,7 @@ pub fn field_crypt_secret() -> &'static str {
 pub fn field_crypt_iv() -> &'static str {
     FIELD_CRYPT_IV
         .get_or_init(|| {
-            let configured = env_var("EDTIB_FIELD_CRYPT_IV");
+            let configured = env_var("TAURI_FIELD_CRYPT_IV");
             if configured.is_empty() {
                 derived("iv", 16)
             } else {
@@ -174,50 +178,76 @@ pub fn field_crypt_iv() -> &'static str {
         .as_str()
 }
 
-/// 由本地密钥派生固定长度片段（hex 子串）：`length` 个 hex 字符。
+/// 由本地链路密钥派生固定长度片段（hex 子串）：`length` 个 hex 字符。
 fn derived(label: &str, length: usize) -> String {
     use crate::crypt;
-    let digest = crypt::sha256(&format!("{}|{label}", app_secret()));
+    let digest = crypt::sha256(&format!("{}|{label}", link_app_secret()));
     digest.chars().take(length).collect()
 }
 
 /// 启动自检：返回缺失/长度非法的环境变量名（供日志告警）。
 pub fn missing_env() -> Vec<&'static str> {
     let mut missing = Vec::new();
-    if app_id().is_empty() {
-        missing.push("EDTIB_APP_ID");
+    if link_app_id().is_empty() {
+        missing.push("TAURI_LINK_ID");
     }
-    if app_secret().len() != 32 {
-        missing.push("EDTIB_APP_SECRET");
+    if link_app_secret().len() != 32 {
+        missing.push("TAURI_LINK_SECRET");
     }
-    if app_iv().len() != 16 {
-        missing.push("EDTIB_APP_IV");
+    if link_app_iv().len() != 16 {
+        missing.push("TAURI_LINK_IV");
     }
+    // 出站地址与 appId/secret/iv 允许由本地 `secrets` 表提供，不在此断言；
+    // 真正缺失时 proxy_request 会以明确的中文错误失败，避免这里误报
     missing
 }
 
-fn read_env(prefix: &str, default_url: &str) -> CryptEnv {
-    let app_url = env_var(&format!("EDTIB_{prefix}_APP_URL"));
-    CryptEnv {
-        app_id: env_var(&format!("EDTIB_{prefix}_APP_ID")),
-        app_secret: env_var(&format!("EDTIB_{prefix}_APP_SECRET")),
-        app_iv: env_var(&format!("EDTIB_{prefix}_APP_IV")),
-        app_url: if app_url.is_empty() {
-            default_url.to_string()
-        } else {
-            app_url
-        },
-    }
+/// 自有网关 origin 白名单：正式包唯一的出网目的地（不含路径，scheme+host 口径）。
+///
+/// 这是「地址」而非「密钥」，写进源码不构成泄露；它存在的意义是让可被 `db_update`
+/// 改写的 `secrets.app_url` 无法把签名请求带出 Edtib 自有域名。
+pub const ALLOWED_GATEWAY_ORIGINS: &[&str] = &[
+    "https://gateway.edtib.com",
+    "https://gateway-dev.edtib.com",
+    "https://gateway-stage.edtib.com",
+];
+
+/// 正式网关主机名（不含 dev/stage）。开发/测试构建默认禁止以此为出网目标。
+///
+/// 存在的意义：`TAURI_APP_BASE_URL` 缺失时会回落到本地 `secrets` 表的 `app_url`，
+/// 而开发机上残留的正式口径密钥文件（`<AppData>/console.env`）同样会被读入——
+/// 任一条链路都能把「测试构建」接到正式网关。审计要求这是不可能发生的事，
+/// 所以在出网收口处按构建类型判定，而不是只靠脚本约定。
+pub const PRODUCTION_GATEWAY_HOSTS: &[&str] = &["gateway.edtib.com"];
+
+/// 主机名是否为正式网关（大小写不敏感，忽略端口）。
+pub fn is_production_gateway_host(host: &str) -> bool {
+    let host = host.split(':').next().unwrap_or_default().to_lowercase();
+    PRODUCTION_GATEWAY_HOSTS.contains(&host.as_str())
 }
 
-/// 等价 `cryptSecrets().development`（网关地址非密钥，保留默认可用）。
-pub fn development() -> &'static CryptEnv {
-    DEVELOPMENT.get_or_init(|| read_env("DEV", "https://gateway-dev.edtib.com/api"))
+/// 开发期联调正式网关的显式放行开关（默认关闭）。
+/// 与 `scripts/with-tauri-env.mjs` 的 `EDTIB_TAURI_ALLOW_PROD_ENV` 同一口径：跨环境必须手动声明。
+pub fn allow_prod_egress() -> bool {
+    env_var("EDTIB_ALLOW_PROD_EGRESS") == "1"
 }
 
-/// 等价 `cryptSecrets().production`。
-pub fn production() -> &'static CryptEnv {
-    PRODUCTION.get_or_init(|| read_env("PROD", "https://gateway.edtib.com/api"))
+/// 出站网关凭证：tauri http 服务调用后端时使用的 appId / secret / iv / 服务地址。
+///
+/// 环境由「当前生效的环境文件」决定（`npm run dev:test` → `.env.test`，
+/// `npm run build` / 密钥文件 → `.env.production`），因此不再区分 `EDTIB_DEV_* / EDTIB_PROD_*`；
+/// `secrets` 表有有效记录时表内凭证优先，地址则以这里的配置值为准（表内 `app_url` 仅兜底，
+/// 且正式包必须落在 `ALLOWED_GATEWAY_ORIGINS` 内，见 `proxy::request::pin_origin`）。
+///
+/// 不再内置 dev/prod 兜底地址：静默兜底会让「测试配置 + 正式网关」这类跨环境污染
+/// 顺利跑通而无人报错，正是本次审计要求消除的失败模式。
+pub fn gateway() -> &'static CryptEnv {
+    GATEWAY.get_or_init(|| CryptEnv {
+        app_id: env_var("TAURI_APP_ID"),
+        app_secret: env_var("TAURI_APP_SECRET"),
+        app_iv: env_var("TAURI_APP_IV"),
+        app_url: env_var("TAURI_APP_BASE_URL"),
+    })
 }
 
 /// 老项目本地 HTTPS 服务地址（对照用：Tauri 版已由 `invoke` 取代）。
@@ -238,38 +268,29 @@ pub fn is_development() -> bool {
     cfg!(debug_assertions)
 }
 
-/// 当前环境的网关密钥配置（等价 `cryptSecrets()[env]`）。
-pub fn env_config() -> &'static CryptEnv {
-    if is_development() {
-        development()
-    } else {
-        production()
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use super::{env_file_path, parse_env_file};
+    use super::{env_file_path, is_production_gateway_host, parse_env_file};
 
     #[test]
     fn parses_key_value_lines_ignoring_comments_and_quotes() {
         let text = r#"
         # 本地链路密钥（32/16 字符）
-        EDTIB_APP_ID=console-local
-        EDTIB_APP_SECRET="xOi99fjEMa7kHbKyRfCfdfRJ72kiKKJ8"
-        EDTIB_APP_IV='94xkXidOuhShVQNu'
+        TAURI_LINK_ID=console-local
+        TAURI_LINK_SECRET="xOi99fjEMa7kHbKyRfCfdfRJ72kiKKJ8"
+        TAURI_LINK_IV='94xkXidOuhShVQNu'
 
         NODE_ENV = production
         NOT_A_PAIR_LINE
         =missing-key
         "#;
         let parsed = parse_env_file(text);
-        assert_eq!(parsed.get("EDTIB_APP_ID").map(String::as_str), Some("console-local"));
+        assert_eq!(parsed.get("TAURI_LINK_ID").map(String::as_str), Some("console-local"));
         assert_eq!(
-            parsed.get("EDTIB_APP_SECRET").map(String::as_str),
+            parsed.get("TAURI_LINK_SECRET").map(String::as_str),
             Some("xOi99fjEMa7kHbKyRfCfdfRJ72kiKKJ8")
         );
-        assert_eq!(parsed.get("EDTIB_APP_IV").map(String::as_str), Some("94xkXidOuhShVQNu"));
+        assert_eq!(parsed.get("TAURI_LINK_IV").map(String::as_str), Some("94xkXidOuhShVQNu"));
         // 键与值两侧空白都会被去掉
         assert_eq!(parsed.get("NODE_ENV").map(String::as_str), Some("production"));
         assert!(!parsed.contains_key("NOT_A_PAIR_LINE"));
@@ -279,9 +300,9 @@ mod tests {
 
     #[test]
     fn unquoted_value_keeps_inner_spaces_and_equals() {
-        let parsed = parse_env_file("EDTIB_PROD_APP_URL=https://gateway.edtib.com/api?a=1");
+        let parsed = parse_env_file("TAURI_APP_BASE_URL=https://gateway.edtib.com/api?a=1");
         assert_eq!(
-            parsed.get("EDTIB_PROD_APP_URL").map(String::as_str),
+            parsed.get("TAURI_APP_BASE_URL").map(String::as_str),
             Some("https://gateway.edtib.com/api?a=1")
         );
     }
@@ -293,5 +314,17 @@ mod tests {
         if std::env::var_os("EDTIB_ENV_FILE").is_none() {
             assert!(env_file_path().is_none());
         }
+    }
+
+    /// 正式网关主机判定要能区分 dev/stage，且不受大小写与端口影响。
+    #[test]
+    fn production_gateway_host_matches_only_official_host() {
+        assert!(is_production_gateway_host("gateway.edtib.com"));
+        assert!(is_production_gateway_host("GATEWAY.edtib.com:443"));
+        assert!(!is_production_gateway_host("gateway-dev.edtib.com"));
+        assert!(!is_production_gateway_host("gateway-stage.edtib.com"));
+        // 反向：以正式域名为后缀的伪装主机不得命中
+        assert!(!is_production_gateway_host("gateway.edtib.com.evil.example"));
+        assert!(!is_production_gateway_host(""));
     }
 }

@@ -15,8 +15,8 @@
 //!   而插入的前置条件就是表空，两者判定等价；新实现不再写 `seeds` 登记表（该表仅作历史结构保留）；
 //! - 老种子在插入前会执行 `knex('secrets').del()` / `knex('schedules').del()`：因前置判定已保证表为空，
 //!   该删除为死代码，新实现不执行任何删除动作（更安全，行为等价）；
-//! - 写入的 `app_url` / 凭证随构建环境选择（等价老 `process.env.NODE_ENV` 选 `cryptSecrets()[env]`），
-//!   由 [`crate::config::env_config`] 决定。
+//! - 写入的 `app_url` / 凭证为「出站网关缺省配置」，由 [`crate::config::gateway`] 决定
+//!   （环境取决于当前生效的环境文件：`.env.test` / `.env.production`，而非编译类型）。
 //! 以上差异决策记录见 `docs/migration-coverage.md`（对齐项 D-03）。
 
 use rusqlite::Connection;
@@ -45,7 +45,7 @@ pub struct SeedReport {
 /// 执行全部运行时种子（等价老项目启动流程中的 knex seed）。
 pub fn run(conn: &Connection) -> AppResult<SeedReport> {
     let report = SeedReport {
-        secrets_inserted: seed_secrets(conn, config::env_config())?,
+        secrets_inserted: seed_secrets(conn, config::gateway())?,
         schedules_inserted: seed_schedules(conn)?,
     };
     if report.secrets_inserted || report.schedules_inserted > 0 {
@@ -133,7 +133,7 @@ mod tests {
     #[test]
     fn seed_is_idempotent_and_matches_legacy_data() {
         let conn = memory_db();
-        let env = config::env_config();
+        let env = config::gateway();
 
         // 首次：等价老两份 seed 文件的写入结果
         let first = run(&conn).expect("首次种子");

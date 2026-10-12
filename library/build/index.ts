@@ -12,7 +12,9 @@ import { viteSingleFile } from 'vite-plugin-singlefile'
 import { createSvgIcons } from './svgSprite'
 import { createUnPlugin } from './unplugin'
 // import { createRollup } from './rollup/'
-import { port } from '../../src/config/'
+import { port } from '../../src/config'
+// [框架统一] 与 books 共用同一份框架代码：日志前缀取 package.json name，禁止写死项目名
+import { name as pkgName } from '../../package.json'
 // import { createReplace } from './unplugin/replace'
 
 const vitePrefix = 'VITE_'
@@ -37,16 +39,18 @@ export const createVitePlugin = (env: Record<string, string>) => {
   // 运行期的授权校验逻辑（library/plugins/vab.ts 的 isCheck）保持与老项目一致，未作改动。
   if (isEmpty(userName) || isEmpty(secretKey)) {
     console.warn(
-      `\n${pc.yellow('[edtib-console]')} 未检测到 ${viteApp}GITHUB_USER_NAME / ${viteApp}SECRET_KEY（由 .env 与 .env.local 提供），已按完整插件链注册，跳过授权码校验提示。\n`
+      `\n${pc.yellow(`[${pkgName}]`)} 未检测到 ${viteApp}GITHUB_USER_NAME / ${viteApp}SECRET_KEY（由 .env 与 .env.local 提供），已按完整插件链注册，跳过授权码校验提示。\n`
     )
   }
-  if (nodeEnv !== 'development') if (isEmpty(userName) || isEmpty(secretKey)) console.warn(`\n${pc.yellow('[edtib-console]')} 生产环境缺少授权码，如为正式发布请补齐 .env.local。\n`)
+  if (nodeEnv !== 'development') if (isEmpty(userName) || isEmpty(secretKey)) console.warn(`\n${pc.yellow(`[${pkgName}]`)} 生产环境缺少授权码，如为正式发布请补齐 .env.local。\n`)
   vitePlugins.push(vueJsx())
   vitePlugins.push(createProgress(env) as any)
   vitePlugins.push(createUnPlugin(env))
   if (isTauri) {
     // 桌面端：跳过 PWA（SW 在 Tauri webview 不被支持，且会被 remove-dist-sw 清理）；改用 singlefile 内联
-    vitePlugins.push(viteSingleFile({ demoteModuleScripts: true }))
+    // 依赖里的 vite-plugin-singlefile 并无 demoteModuleScripts 选项（该选项属于另一分支），传入只会静默失效；
+    // 真要降级 module 脚本需同时设置 rollup output.format='iife'，此处维持默认行为不变
+    vitePlugins.push(viteSingleFile() as any)
   } else {
     vitePlugins.push(createPwa())
   }

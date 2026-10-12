@@ -7,6 +7,7 @@ import { defineConfig, loadEnv } from 'vite'
 import { createVitePlugin, createWatch } from './library/build'
 import { dependencies, devDependencies, name, version } from './package.json'
 import {
+  allowedHosts,
   assetsDir,
   base,
   chunkSizeWarningLimit,
@@ -24,7 +25,8 @@ import {
 //   1. base 固定 './'：Tauri 打包后前端由 tauri://localhost 自定义协议加载，无服务器基准路径；
 //   2. 构建产物输出到项目根 dist/（tauri.conf.json -> build.frontendDist = ../dist），
 //      不再输出到 Electron 的 electron/output/view；
-//   3. dev 端口为 9002（与 nginx /console/ 代理口一致）且 strictPort（tauri.conf.json devUrl 固定）；
+//   3. [框架统一] dev server 的 port / allowedHosts 一律取自 src/config/cli.config.ts
+//      （与 books 同一份框架代码，变量点集中在 cli.config，不允许在本文件再写死）；
 //   4. build.target 按 macOS WKWebView 能力设定（es2021 + safari15）；
 //   5. 旧项目基于 rolldown-vite(vite8) 的 codeSplitting.groups 在 rollup 内核的 vite7 上不生效，
 //      改为等价的手工分包函数（声明顺序即匹配优先级，与旧语义一致）；
@@ -67,7 +69,7 @@ export default defineConfig(({ mode }: ConfigEnv): UserConfig => {
         ? {
             protocol: 'ws',
             host,
-            port: 9002,
+            port,
             overlay: true,
           }
         : {
@@ -76,12 +78,13 @@ export default defineConfig(({ mode }: ConfigEnv): UserConfig => {
       host: host || '0.0.0.0',
       proxy: {
         '/api': {
-          // 本地开发网关（docker 网段外的宿主机直连）；gateway-dev.edtib.com 已停用
-          target: 'http://127.0.0.1:9000/',
+          // [口径调整] npm run dev（.env.development）= 本地 API 服务口径：经 docker nginx 转发到开发网关
+          target: 'https://gateway-dev.edtib.com',
           changeOrigin: true,
+          secure: false,
         },
       },
-      allowedHosts: ['edtib_console'],
+      allowedHosts,
       watch: {
         // [迁移调整] 忽略监听 src-tauri，避免 Rust 侧编译产物触发前端热更新
         ignored: ['**/src-tauri/**'],
